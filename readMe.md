@@ -1,4 +1,4 @@
-# PSU UAS MavEZ
+# PSU UAS MAVez
 ## The Pennsylvania State University
 
 ## Description
