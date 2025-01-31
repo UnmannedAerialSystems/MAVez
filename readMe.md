@@ -8,24 +8,22 @@ A repository for controlling a UAV with MavLink for the UAS competition.
 - [Modules](#modules)
 - [Classes](#classes)
 - [Error Codes](#error-codes)
-- [Contributing](#contributing)
-- [License](#license)
 
 ## Modules
 
-### flight_manager.py
+### `flight_manager.py`
 **Current version: 1.0.0**
 Responsible for managing the flight of the drone.
 
-### mav_controller.py
+### `mav_controller.py`
 **Current version: 1.0.0**
 Responsible for connecting to, communicating with, and sending commands to the drone.
 
-### flight_utils.py
+### `flight_utils.py`
 **Current version: 1.0.0**
 Contains utility classes for managing missions and waypoints.
 
-### target_mapper.py
+### `target_mapper.py`
 **Current version: 1.0.0**
 Converts object detection results into coordinates.
 - Currently a placeholder to allow functionality of other modules.
