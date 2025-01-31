@@ -43,6 +43,9 @@ Converts object detection results into coordinates.
 - **Mission_Item**: Represents a mission item (waypoint) for the drone.
 - **Mission**: Represents a mission plan for the drone.
 
+### `target_mapper.py`
+- **Target_Mapper**: Converts object detection results into coordinates.
+
 ## Error Codes
 **Code Distribution**:
 - `100-199`: Controller errors
@@ -52,10 +55,7 @@ Converts object detection results into coordinates.
 |------|-------------|
 | `101` | Timed out waiting for a response from the drone.  |
 | `111` | The requested mode does not exist. |
-|------|-------------|
 | `201` | No file found with given filename/filepath. |
 | `202` | The given mission file is empty |
 | `203` | The given start index is out of range of the mission file |
 | `204` | The given end index is out of range of the mission file |
-|------|-------------|
-
