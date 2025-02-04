@@ -1,6 +1,6 @@
 '''
 mav_controller.py
-version: 1.0.0
+version: 1.0.1
 
 Theodore Tasman
 2025-01-30
@@ -43,6 +43,18 @@ class Controller:
         if not response:
             raise Exception('Error in Controller initialization - no heartbeat received')
 
+    def decode_error(self, error_code):
+        '''
+            Decode an error code.
+            error_code: int
+            returns: str
+        '''
+        errors_dict = {
+            101: "\nRESPONSE TIMEOUT ERROR (101)\n",
+            102: "\nUNKNOWN MODE ERROR (102)\n",
+        }
+
+        return errors_dict.get(error_code, f'UNKNOWN ERROR ({error_code})')
 
     def await_mission_request(self):
         '''
@@ -54,6 +66,7 @@ class Controller:
 
         response = self.master.recv_match(type='MISSION_REQUEST', blocking=True, timeout=self.TIMEOUT_DURATION)
         if response:
+            print(str(response.seq) + '<-', end='')
             return 0
         else:
             return self.TIMEOUT_ERROR
@@ -99,8 +112,31 @@ class Controller:
             0, # target_system
             0, # target_component
             count, # count
-            0 # mission_type
+            mission_type # mission_type
         )
+
+    def await_mission_item_reached(self, timeout=TIMEOUT_DURATION):
+        '''
+            Wait for a mission item reached message from the drone.
+            returns:
+                0 if a mission item reached message was received
+                101 if the response timed out
+        '''
+
+        response = self.master.recv_match(type='MISSION_ITEM_REACHED', blocking=True, timeout=timeout)
+        if response:
+            return response.seq
+        else:
+            return self.TIMEOUT_ERROR
+        
+    def send_clear_mission(self):
+        '''
+            Clear the mission on the drone. DOES NOT AWAIT RESPONSE.
+            returns:
+                0 if the mission was cleared successfully
+        '''
+
+        self.master.waypoint_clear_all_send()
 
     def set_mode(self, mode):
         '''
@@ -108,6 +144,7 @@ class Controller:
             mode: str
             returns:
                 0 if the mode was set successfully
+                101 if the response timed out
                 111 if the mode is not recognized
         '''
         UNKNOWN_MODE = 111
@@ -148,7 +185,7 @@ class Controller:
             force: bool
             returns:
                 0 if the drone was armed successfully
-                1 if the response timed out
+                101 if the response timed out
         '''
 
         message = self.master.mav.command_long_encode(
@@ -181,7 +218,7 @@ class Controller:
             force: bool
             returns:
                 0 if the drone was disarmed successfully
-                1 if the response timed out
+                101 if the response timed out
         '''
 
         message = self.master.mav.command_long_encode(
@@ -212,7 +249,7 @@ class Controller:
             Enable the geofence.
             returns:
                 0 if the geofence was enabled successfully
-                1 if the response timed out
+                101 if the response timed out
         '''
 
         message = self.master.mav.command_long_encode(
@@ -244,7 +281,7 @@ class Controller:
             floor_only: bool - if set to True, only the floor geofence will be disabled
             returns:
                 0 if the geofence was disabled successfully
-                1 if the response timed out
+                101 if the response timed out
         '''
 
         message = self.master.mav.command_long_encode(
@@ -269,3 +306,69 @@ class Controller:
         else:
             return self.TIMEOUT_ERROR
 
+    def set_home(self, home_coordinate=(0, 0, 0)):
+        '''
+            Set the home location of the drone.
+            home_coordinate: tuple
+            returns:
+                0 if the home location was set successfully
+                101 if the response timed out
+        '''
+
+        use_current = home_coordinate != (0, 0, 0)
+
+        message = self.master.mav.command_long_encode(
+            0, # target_system
+            0, # target_component
+            mavutil.mavlink.MAV_CMD_DO_SET_HOME, # command
+            0, # confirmation
+            1 if use_current else 0, # param1
+            0, # param2
+            0, # param3
+            0, # param4
+            home_coordinate[0], # param5
+            home_coordinate[1], # param6
+            home_coordinate[2] # param7
+        )
+
+        self.master.mav.send(message)
+
+        response = self.master.recv_match(type='COMMAND_ACK', blocking=True, timeout=self.TIMEOUT_DURATION)
+        if response:
+            return 0
+        else:
+            return self.TIMEOUT_ERROR
+    
+
+    def run_prearm_checks(self):
+        '''
+            Run prearm checks on the drone.
+            returns:
+                0 if the prearm checks passed
+                101 if the response timed out
+        '''
+
+        message = self.master.mav.command_long_encode(
+            0, # target_system
+            0, # target_component
+            mavutil.mavlink.MAV_CMD_PREFLIGHT_CHECK, # command
+            0, # confirmation
+            0, # param1
+            0, # param2
+            0, # param3
+            0, # param4
+            0, # param5
+            0, # param6
+            0 # param7
+        )
+
+        self.master.mav.send(message)
+
+        response = self.master.recv_match(type='COMMAND_ACK', blocking=True, timeout=self.TIMEOUT_DURATION)
+        if response:
+
+            #TODO: check response for success
+
+            return 0
+        else:
+            return self.TIMEOUT_ERROR

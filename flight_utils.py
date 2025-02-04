@@ -1,6 +1,6 @@
 '''
 flight_utils.py
-version: 1.0.0
+version: 1.0.2
 
 Theodore Tasman
 2025-01-30
@@ -69,7 +69,7 @@ class Mission_Item:
         Represents a mission item for the drone.
     '''
 
-    def __init__(self, seq, frame, command, current, auto_continue, coordinate, param1=0, param2=0, param3=0, param4=0):
+    def __init__(self, seq, frame, command, current, auto_continue, coordinate, type=0, param1=0, param2=0, param3=0, param4=0):
         '''
             Initialize the mission item.
             seq: int
@@ -97,10 +97,11 @@ class Mission_Item:
         self.param2 = int(param2)
         self.param3 = int(param3)
         self.param4 = int(param4)
+        self.type = type
     
 
     def __str__(self):
-        return f'{self.seq} {self.frame} {self.command} {self.current} {self.auto_continue} {self.x} {self.y} {self.z} {self.param1} {self.param2} {self.param3} {self.param4}'
+        return f'{self.seq} {self.frame} {self.command} {self.current} {self.auto_continue} {self.x} {self.y} {self.z} {self.type} {self.param1} {self.param2} {self.param3} {self.param4}'
 
     __repr__ = __str__
 
@@ -125,7 +126,8 @@ class Mission_Item:
             self.param4, # param4
             self.x, # x
             self.y, # y
-            self.z # z
+            self.z, # z
+            self.type # type
         )
         return message
 
@@ -146,12 +148,13 @@ class Mission:
     TIMEOUT_ERROR = 101
 
 
-    def __init__(self, controller):
+    def __init__(self, controller, type=0):
         '''
             Initialize the mission.
             controller: Controller
         '''
         self.controller = controller
+        self.type = type
         self.mission_items = []
     
     def __str__(self):
@@ -163,6 +166,16 @@ class Mission:
     
     __repr__ = __str__
 
+    def decode_error(self, error_code):
+
+        error_codes = {
+            201: "\nFILE NOT FOUND ERROR (201)\n",
+            202: "\nEMPTY FILE ERROR (202)\n",
+            203: "\nINVALID START INDEX ERROR (203)\n",
+            204: "\nINVALID END INDEX ERROR (204)\n",
+        }
+
+        return error_codes.get(error_code, f"\nUNKNOWN ERROR ({error_code})\n")
 
     def load_mission_from_file(self, filename, start=0, end=-1):
         '''
@@ -194,11 +207,11 @@ class Mission:
             print('File is empty')
             return FILE_EMPTY
         
-        elif start >= len(lines - 1):
+        elif start >= len(lines) - 1:
             print('Start index out of range')
             return START_OUT_OF_RANGE
         
-        elif end != -1 and end >= len(lines - 1):
+        elif end != -1 and end >= len(lines) - 1:
             print('End index out of range')
             return END_OUT_OF_RANGE
 
@@ -211,7 +224,7 @@ class Mission:
             lines = lines[start + 1:end + 1]
 
         for line in lines:
-            parts = line.split('\t')
+            parts = line.strip().split('\t')
             seq = int(parts[0])
             current = int(parts[1])
             frame = int(parts[2])
@@ -225,10 +238,11 @@ class Mission:
             z = float(parts[10])
             auto_continue = int(parts[11])
 
-            mission_item = Mission_Item(seq, frame, command, current, auto_continue, x, y, z, param1, param2, param3, param4)
+            item_coordinate = Coordinate(x, y, z)
+            mission_item = Mission_Item(seq, frame, command, current, auto_continue, item_coordinate, self.type, param1, param2, param3, param4)
             self.mission_items.append(mission_item)
-
-        print(self)
+        
+        print(f'Loaded {len(self.mission_items)} mission items from {filename}')
         return 0
 
 
@@ -267,24 +281,70 @@ class Mission:
                 101 if the response timed out
         '''
 
+        # TODO: add support for mission types
+
         # send mission count
-        self.controller.send_mission_count(len(self.mission_items))
+        self.controller.send_mission_count(len(self.mission_items), self.type)
 
         # loop through mission items and send them
         for mission_item in self.mission_items:
-            
+
             # await mission request
             response = self.controller.await_mission_request()
             if response:
                 return response
-
+            
             # send next mission item
+            print(mission_item.seq)
             self.controller.send_message(mission_item.message)
         
-        # await mission ack confirming mission was received
+        print("Awaiting mission ack")
+        # await mission ack confirming mission was received 
+        response = self.controller.await_mission_ack()
+        if response:
+            return response
+        
+        print("Mission sent successfully")
+        return 0
+
+
+    def wait_for_waypoint_reached(self, target, timeout=10):
+        '''
+            Wait for the drone to reach the current waypoint.
+            timeout: int
+            returns:
+                0 if the waypoint was reached
+                101 if the timeout was reached
+        '''
+        latest_waypoint = -1
+        
+        while latest_waypoint < target:
+            response = self.controller.await_mission_item_reached(timeout)
+
+            if response == self.controller.TIMEOUT_ERROR:
+                return response
+
+            latest_waypoint = response
+            print(f'Waypoint reached: {latest_waypoint}')
+
+    
+    def clear_mission(self):
+        '''
+            Clear the mission from the drone.
+            returns:
+                0 if the mission was cleared successfully
+                101 if the response timed out
+        '''
+        # send mission clear all
+        print("Clearing mission")
+        self.controller.send_clear_mission()
+
+        # await mission ack confirming mission was cleared
         response = self.controller.await_mission_ack()
         if response:
             return response
         
         return 0
     
+    def get_length(self): 
+        return len(self.mission_items)

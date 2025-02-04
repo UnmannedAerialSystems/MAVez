@@ -12,15 +12,15 @@ A repository for controlling a UAV with MavLink for the UAS competition.
 ## Modules
 
 ### `flight_manager.py`
-**Current version: 1.0.0**
+**Current version: 1.0.1**
 Responsible for managing the flight of the drone.
 
 ### `mav_controller.py`
-**Current version: 1.0.0**
+**Current version: 1.0.1**
 Responsible for connecting to, communicating with, and sending commands to the drone.
 
 ### `flight_utils.py`
-**Current version: 1.0.0**
+**Current version: 1.0.1**
 Contains utility classes for managing missions and waypoints.
 
 ### `target_mapper.py`
@@ -48,6 +48,7 @@ Converts object detection results into coordinates.
 **Code Distribution**:
 - `100-199`: Controller errors
 - `200-299`: Mission errors
+- `300-399`: Flight errors
 
 | Code | Description |
 |------|-------------|
@@ -57,3 +58,6 @@ Converts object detection results into coordinates.
 | `202` | The given mission file is empty |
 | `203` | The given start index is out of range of the mission file |
 | `204` | The given end index is out of range of the mission file |
+| `301` | Takeoff was attempted before preflight check was completed |
+| `302` | Attempted to append detect mission without providing file to load or loading it first |
+
