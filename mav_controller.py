@@ -372,3 +372,35 @@ class Controller:
             return 0
         else:
             return self.TIMEOUT_ERROR
+
+
+    def set_servo(self, servo_number, pwm):
+        '''
+            Set the servo to the specified PWM value.
+            servo_number: int
+            pwm: int
+            returns:
+                0 if the servo was set successfully
+                101 if the response timed out
+        '''
+        message = self.master.mav.command_long_encode(
+            0, # target_system
+            0, # target_component
+            mavutil.mavlink.MAV_CMD_DO_SET_SERVO, # command
+            0, # confirmation
+            servo_number, # param1
+            pwm, # param2
+            0, # param3
+            0, # param4
+            0, # param5
+            0, # param6
+            0 # param7
+        )
+
+        self.master.mav.send(message)
+        response = self.master.recv_match(type='COMMAND_ACK', blocking=True, timeout=self.TIMEOUT_DURATION)
+        if response:
+            return 0
+        else:
+            return self.TIMEOUT_ERROR
+        
