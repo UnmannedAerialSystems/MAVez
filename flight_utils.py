@@ -14,6 +14,7 @@ Mission class - represents a mission for the drone.
 '''
 
 from pymavlink import mavutil
+import math
 
 class Coordinate:
     '''
@@ -62,6 +63,32 @@ class Coordinate:
         '''
         dd = dms[0] + dms[1] / 60 + dms[2] / 3600
         return dd
+    
+
+    def offset_coordinate(self, offset, heading):
+        '''
+        offset: the distance to offset the coordinate in meters
+        heading: the direction to offset the coordinate in degrees
+        returns:
+            Coordinate
+        '''
+
+        # convert heading to radians
+        heading = math.radians(heading)
+
+        # calculate the offset in latitude and longitude
+        lat_offset = offset * math.cos(heading)
+        lon_offset = offset * math.sin(heading)
+
+        # convert the offset to degrees
+        lat_offset = (lat_offset / 111320) * 10e6
+        lon_offset = (lon_offset / (111320 * math.cos(self.lat / 10e6))) * 10e6
+
+        # calculate the new latitude and longitude
+        new_lat = self.lat + lat_offset
+        new_lon = self.lon + lon_offset
+
+        return Coordinate(int(new_lat), int(new_lon), self.alt, use_int=False)
 
 
 class Mission_Item:
@@ -101,7 +128,7 @@ class Mission_Item:
     
 
     def __str__(self):
-        return f'{self.seq} {self.frame} {self.command} {self.current} {self.auto_continue} {self.x} {self.y} {self.z} {self.type} {self.param1} {self.param2} {self.param3} {self.param4}'
+        return f'Seq: {self.seq} \nFrame: {self.frame}\nCommand: {self.command}\nCurrent: {self.current}\nAuto Continue: {self.auto_continue}\nX: {self.x}\nY: {self.y}\nZ: {self.z}\nType: {self.type}\nParam1: {self.param1}\nParam2: {self.param2}\nParam3 {self.param3}\nParam4 {self.param4}'
 
     __repr__ = __str__
 
@@ -177,7 +204,7 @@ class Mission:
 
         return error_codes.get(error_code, f"\nUNKNOWN ERROR ({error_code})\n")
 
-    def load_mission_from_file(self, filename, start=0, end=-1):
+    def load_mission_from_file(self, filename, start=0, end=-1, first_seq=-1):
         '''
             Load a mission from a file.
             filename: str
@@ -225,7 +252,13 @@ class Mission:
 
         for line in lines:
             parts = line.strip().split('\t')
-            seq = int(parts[0])
+
+            if first_seq != -1:
+                seq = first_seq
+                first_seq += 1
+            else:
+                seq = int(parts[0])
+
             current = int(parts[1])
             frame = int(parts[2])
             command = int(parts[3])
@@ -348,3 +381,20 @@ class Mission:
     
     def get_length(self): 
         return len(self.mission_items)
+    
+
+def main():
+
+    test_target = Coordinate(38.31567571033244, -76.55180243803832, alt=0)
+
+    offset_target = test_target.offset_coordinate(100, 282)
+
+    offset_target_2 = test_target.offset_coordinate(100, 282+180)
+
+    print(test_target)
+    print(offset_target)
+    print(offset_target_2)
+
+
+if __name__ == "__main__":
+    main()
