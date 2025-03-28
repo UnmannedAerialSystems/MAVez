@@ -15,7 +15,7 @@ python3 ../MAVLink/ardupilot/Tools/autotest/sim_vehicle.py -v ArduPlane --consol
 
 '''
 
-from flight_utils import Mission_Item, Mission, Coordinate
+from MavEZ.Mission import Mission_Item, Mission, Coordinate
 from mav_controller import Controller
 from pymavlink import mavutil
 import time
@@ -249,7 +249,7 @@ class Flight:
         '''
         if self.detect_mission.get_length() == 0:
             
-            # Check if file is provided
+            # Check if file is provided     "it'd be cleaner to store the missions as mission objects instead of filenames but I decided it's better to save memory"
             if detect_mission_file:
                 self.detect_mission.load_mission_from_file(detect_mission_file)
 
@@ -259,6 +259,21 @@ class Flight:
 
 
         self.mission_list.append(self.detect_mission)
+
+
+    def append_mission(self, filename):
+        '''
+            Append a mission to the mission list.
+            mission: Mission
+        '''
+        # Load the mission from the file
+        mission = Mission(self.controller)
+        result = mission.load_mission_from_file(filename)
+
+        if result:
+            return result
+        
+        self.mission_list.append(mission)
 
 
     def wait_and_send_next_mission(self):

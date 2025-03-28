@@ -7,7 +7,7 @@ Currently, it generates a random coordinate near the test site.
 '''
 
 
-from flight_utils import Coordinate
+from Mission import Coordinate
 
 class Target_Mapper:
 

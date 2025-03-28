@@ -1,164 +1,16 @@
 '''
-flight_utils.py
-version: 1.0.2
+Mission class
 
-Theodore Tasman
+Ted Tasman
 2025-01-30
 PSU UAS
 
-This module contains utility classes for managing flights.
-
-Coordinate class - represents a coordinate in latitude, longitude, and altitude.
-Mission_Item class - represents a mission item for the drone.
-Mission class - represents a mission for the drone.
+This class represents a mission for the drone.
 '''
 
-from pymavlink import mavutil
-import math
+from Mission_Item import Mission_Item
+from Coordinate import Coordinate
 import time
-
-class Coordinate:
-    '''
-        Represents a coordinate in latitude, longitude, and altitude.
-    '''
-
-    def __init__(self, lat, lon, alt, dms=False, use_int=True):
-        '''
-            Initialize the coordinate.
-            lat: float | str if dms is True
-            lon: float | str if dms is True
-            alt: float
-            dms: bool - if set to True, the coordinates are in degrees, minutes, seconds
-            integer: bool - if set to True, the coordinates are stored as integers
-        '''
-
-        # if dms is True, convert the coordinates to decimal degrees
-        if dms:
-            self.lat = self.dms_to_dd(lat)
-            self.lon = self.dms_to_dd(lon)
-        # otherwise, use the coordinates as they are
-        else:
-            self.lat = lat
-            self.lon = lon
-
-        # alt is always used as it is
-        self.alt = alt
-
-        # if integer is True, convert the coordinates to integers
-        if use_int:
-            self.lat = int(self.lat * 1e7)
-            self.lon = int(self.lon * 1e7)
-            self.alt = int(self.alt)
-    
-    def __str__(self):
-        return f'{self.lat} {self.lon} {self.alt}'
-    
-    __repr__ = __str__
-
-    def dms_to_dd(self, dms):
-        '''
-            Convert degrees, minutes, seconds to decimal degrees.
-            dms: float
-            returns:
-                dd: float
-        '''
-        dd = dms[0] + dms[1] / 60 + dms[2] / 3600
-        return dd
-    
-
-    def offset_coordinate(self, offset, heading):
-        '''
-        offset: the distance to offset the coordinate in meters
-        heading: the direction to offset the coordinate in degrees
-        returns:
-            Coordinate
-        '''
-
-        # convert heading to radians
-        heading = math.radians(heading)
-
-        # calculate the offset in latitude and longitude
-        lat_offset = offset * math.cos(heading)
-        lon_offset = offset * math.sin(heading)
-
-        # convert the offset to degrees
-        lat_offset = (lat_offset / 111320) * 10e6
-        lon_offset = (lon_offset / (111320 * math.cos(self.lat / 10e6))) * 10e6
-
-        # calculate the new latitude and longitude
-        new_lat = self.lat + lat_offset
-        new_lon = self.lon + lon_offset
-
-        return Coordinate(int(new_lat), int(new_lon), self.alt, use_int=False)
-
-
-class Mission_Item:
-    '''
-        Represents a mission item for the drone.
-    '''
-
-    def __init__(self, seq, frame, command, current, auto_continue, coordinate, type=0, param1=0, param2=0, param3=0, param4=0):
-        '''
-            Initialize the mission item.
-            seq: int
-            frame: int
-            command: int
-            current: int
-            auto_continue: int
-            x: float
-            y: float
-            z: float
-            param1: float
-            param2: float
-            param3: float
-            param4: float
-        '''
-        self.seq = int(seq)
-        self.frame = int(frame)
-        self.command = int(command)
-        self.current = int(current)
-        self.auto_continue = int(auto_continue)
-        self.x = coordinate.lat
-        self.y = coordinate.lon
-        self.z = coordinate.alt
-        self.param1 = int(param1)
-        self.param2 = int(param2)
-        self.param3 = int(param3)
-        self.param4 = int(param4)
-        self.type = type
-    
-
-    def __str__(self):
-        return f'Seq: {self.seq} \nFrame: {self.frame}\nCommand: {self.command}\nCurrent: {self.current}\nAuto Continue: {self.auto_continue}\nX: {self.x}\nY: {self.y}\nZ: {self.z}\nType: {self.type}\nParam1: {self.param1}\nParam2: {self.param2}\nParam3 {self.param3}\nParam4 {self.param4}'
-
-    __repr__ = __str__
-
-    @property
-    def message(self):
-        '''
-            Get the message to be sent to the drone.
-            returns:
-                message: pymavlink.mavutil.mavlink
-        '''
-        message = mavutil.mavlink.MAVLink_mission_item_int_message(
-            0, # target_system
-            0, # target_component
-            self.seq, # seq
-            self.frame, # frame
-            self.command, # command
-            self.current, # current
-            self.auto_continue, # auto continue
-            self.param1, # param1
-            self.param2, # param2
-            self.param3, # param3
-            self.param4, # param4
-            self.x, # x
-            self.y, # y
-            self.z, # z
-            self.type # type
-        )
-        return message
-
 
 class Mission:
     '''
