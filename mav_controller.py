@@ -403,4 +403,20 @@ class Controller:
             return 0
         else:
             return self.TIMEOUT_ERROR
+    
+
+    def await_channel_input(self, timeout=TIMEOUT_DURATION):
+        '''
+            Wait for a channel input message from the drone.
+            channel: int
+            returns:
+                0 if a channel input message was received
+                101 if the response timed out
+        '''
+
+        response = self.master.recv_match(type='RC_CHANNELS', blocking=True, timeout=timeout)
+        if response:
+            return response
+        else:
+            return self.TIMEOUT_ERROR
         
