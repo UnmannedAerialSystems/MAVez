@@ -15,7 +15,9 @@ python3 ../MAVLink/ardupilot/Tools/autotest/sim_vehicle.py -v ArduPlane --consol
 
 '''
 
-from MavEZ.Mission import Mission_Item, Mission, Coordinate
+from Coordinate import Coordinate
+from Mission import Mission
+from Mission_Item import Mission_Item
 from mav_controller import Controller
 from pymavlink import mavutil
 import time
@@ -105,8 +107,8 @@ class Flight:
         if response:
             return response
         
-        # wait a second for mission to be fully received
-        time.sleep(1)
+        # wait for mission to be fully received
+        time.sleep(3)
 
         # set the mode to AUTO
         print("Setting mode to AUTO")
@@ -289,10 +291,11 @@ class Flight:
         # Get the current mission
         current_mission = self.mission_list.pop(0)
 
-        # if the mission list is empty, set the next mission to the land mission
+        # if the mission list is empty, return
         if len(self.mission_list) == 0:
-            print("No more missions, queueing land mission")
-            next_mission = self.land_mission
+            print("Last mission queued")
+            #next_mission = self.land_mission
+            return 0
         
         # otherwise, set the next mission to the next mission in the list
         else:
@@ -325,7 +328,7 @@ class Flight:
         return result
     
 
-    def preflight_check(self, land_mission_file, geofence_file, home_coordinate=(0,0,0)):
+    def preflight_check(self, land_mission_file, geofence_file, home_coordinate=Coordinate(0, 0, 0)):
         '''
             Perform a preflight check. On success, set preflight_check_done to True.
             land_mission_file: str

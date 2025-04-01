@@ -71,10 +71,10 @@ class Mission:
                 204 if the end index was out of range
         '''
 
-        FILE_NOT_FOUND = 1
-        FILE_EMPTY = 2
-        START_OUT_OF_RANGE = 3
-        END_OUT_OF_RANGE = 4
+        FILE_NOT_FOUND = 201
+        FILE_EMPTY = 202
+        START_OUT_OF_RANGE = 203
+        END_OUT_OF_RANGE = 204
 
         try:
             with open(filename, 'r') as file:
@@ -104,6 +104,10 @@ class Mission:
             lines = lines[start + 1:end + 1]
 
         for line in lines:
+            # skip empty lines
+            if line == '\n':
+                continue
+
             parts = line.strip().split('\t')
 
             if first_seq != -1:
@@ -166,8 +170,6 @@ class Mission:
                 0 if the mission was sent successfully
                 101 if the response timed out
         '''
-
-        # TODO: add support for mission types
 
         # send mission count
         self.controller.send_mission_count(len(self.mission_items), self.type)
@@ -264,6 +266,46 @@ class Mission:
     def get_length(self): 
         return len(self.mission_items)
     
+
+    def validate_mission_file(filename): # this has to be in state actions so the filepaths match
+        '''
+            Validate a mission from a file.
+            filename: str
+            start: int
+            end: int
+            returns:
+                0 if the mission was loaded successfully
+                201 if the file was not found
+                202 if the file was empty
+        '''
+
+        FILE_NOT_FOUND = 201
+        FILE_EMPTY = 202
+
+        try:
+            with open(filename, 'r') as file:
+                lines = file.readlines()
+        except FileNotFoundError:
+            print(f'File {filename} not found')
+            return FILE_NOT_FOUND
+
+        if len(lines) == 0:
+            print('File is empty')
+            return FILE_EMPTY
+
+        for line in lines[1:]:
+            # skip empty lines
+            if line == '\n':
+                continue
+
+            parts = line.strip().split('\t')
+            if len(parts) != 12:
+                print(f'Invalid line: {line}')
+                return FILE_EMPTY
+        
+        print(f'Verified {len(lines)} items from {filename}')
+        return 0
+
 
 def main():
 

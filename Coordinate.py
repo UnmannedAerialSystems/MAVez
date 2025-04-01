@@ -81,3 +81,18 @@ class Coordinate:
         new_lon = self.lon + lon_offset
 
         return Coordinate(int(new_lat), int(new_lon), self.alt, use_int=False)
+    
+    def __eq__(self, other):
+        '''
+            Compare two coordinates.
+            returns:
+                True if the coordinates are equal
+                False if the coordinates are not equal
+        '''
+        if isinstance(other, tuple) and len(other) == 3:
+            # if other is a tuple, convert it to a Coordinate
+            other = Coordinate(other[0], other[1], other[2])
+
+        return self.lat == other.lat and self.lon == other.lon and self.alt == other.alt
+        
+    

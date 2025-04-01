@@ -12,6 +12,7 @@ Controller class - facilitates communication with the drone.
 '''
 
 from pymavlink import mavutil
+from Coordinate import Coordinate
 
 class Controller:
     '''
@@ -306,7 +307,7 @@ class Controller:
         else:
             return self.TIMEOUT_ERROR
 
-    def set_home(self, home_coordinate=(0, 0, 0)):
+    def set_home(self, home_coordinate=Coordinate(0, 0, 0)):
         '''
             Set the home location of the drone.
             home_coordinate: tuple
@@ -315,7 +316,7 @@ class Controller:
                 101 if the response timed out
         '''
 
-        use_current = home_coordinate != (0, 0, 0)
+        use_current = home_coordinate == (0, 0, 0)
 
         message = self.master.mav.command_long_encode(
             0, # target_system
@@ -326,9 +327,9 @@ class Controller:
             0, # param2
             0, # param3
             0, # param4
-            home_coordinate[0], # param5
-            home_coordinate[1], # param6
-            home_coordinate[2] # param7
+            home_coordinate.lat / 1e7, # param5     for some reason, setting home requires float coordinates unlike mission items
+            home_coordinate.lon / 1e7, # param6     that took me an hour to figure out
+            home_coordinate.alt # param7
         )
 
         self.master.mav.send(message)
