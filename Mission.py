@@ -195,26 +195,6 @@ class Mission:
         print("Mission sent successfully")
         return 0
 
-
-    def wait_for_waypoint_reached(self, target, timeout=10):
-        '''
-            Wait for the drone to reach the current waypoint.
-            timeout: int
-            returns:
-                0 if the waypoint was reached
-                101 if the timeout was reached
-        '''
-        latest_waypoint = -1
-        
-        while latest_waypoint < target:
-            response = self.controller.await_mission_item_reached(timeout)
-
-            if response == self.controller.TIMEOUT_ERROR:
-                return response
-
-            latest_waypoint = response
-            print(f'Waypoint reached: {latest_waypoint}')
-
     
     def wait_for_channel_input(self, channel, value, timeout=10, wait_time=120):
         '''

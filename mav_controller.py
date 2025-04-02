@@ -411,11 +411,25 @@ class Controller:
             Wait for a channel input message from the drone.
             channel: int
             returns:
-                0 if a channel input message was received
+                response if a channel input message was received
                 101 if the response timed out
         '''
 
         response = self.master.recv_match(type='RC_CHANNELS', blocking=True, timeout=timeout)
+        if response:
+            return response
+        else:
+            return self.TIMEOUT_ERROR
+        
+    
+    def await_wind(self, timeout=TIMEOUT_DURATION):
+        '''
+        Wait for a wind_cov message from the drone.
+        returns:
+            response if a wind_cov message was received
+            101 if the response timed out
+        '''
+        response = self.master.recv_match(type='WIND_COV', blocking=True, timeout=timeout)
         if response:
             return response
         else:
