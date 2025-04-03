@@ -11,8 +11,8 @@ This module is responsible for controlling the drone.
 Controller class - facilitates communication with the drone.
 '''
 
-from pymavlink import mavutil
-from MavEZ.Coordinate import Coordinate
+from pymavlink import mavutil # type: ignore
+from .Coordinate import Coordinate # type: ignore
 
 class Controller:
     '''

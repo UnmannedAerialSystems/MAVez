@@ -15,18 +15,19 @@ python3 ../MAVLink/ardupilot/Tools/autotest/sim_vehicle.py -v ArduPlane --consol
 
 '''
 
-from MavEZ.Coordinate import Coordinate
-from MavEZ.Mission import Mission
-from MavEZ.Mission_Item import Mission_Item
-from MavEZ.mav_controller import Controller
-from pymavlink import mavutil
+# . imports are relative to the current file
+from .Coordinate import Coordinate # type: ignore
+from .Mission import Mission # type: ignore
+from .Mission_Item import Mission_Item # type: ignore
+from .mav_controller import Controller # type: ignore
+from pymavlink import mavutil # type: ignore
 import time
 import sys
 import os
 # Add the parent directory to the Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from CameraModule import camera_emulator
-from ObjectDetection import lion_sight_emulator
+from CameraModule import camera_emulator # type: ignore
+from ObjectDetection import lion_sight_emulator # type: ignore
 
 class Flight:
     '''

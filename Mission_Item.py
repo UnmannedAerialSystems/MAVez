@@ -9,7 +9,7 @@ This class represents a mission item for the drone.
 It provides methods to initialize the mission item and to convert it to a message.
 '''
 
-from pymavlink import mavutil
+from pymavlink import mavutil # type: ignore
 
 class Mission_Item:
 
