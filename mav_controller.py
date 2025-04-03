@@ -448,3 +448,68 @@ class Controller:
             return response.landed_state
         else:
             return self.TIMEOUT_ERROR
+    
+
+    def set_message_interval(self, message_type, interval, timeout=TIMEOUT_DURATION):
+        '''
+            Set the message interval for the specified message type.
+            message_type: str
+            interval: int
+            returns:
+                0 if the message interval was set successfully
+                101 if the response timed out
+        '''
+
+        message = self.master.mav.command_long_encode(
+            0, # target_system
+            0, # target_component
+            mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL, # command
+            0, # confirmation
+            message_type, # param1
+            interval, # param2
+            0, # param3
+            0, # param4
+            0, # param5
+            0, # param6
+            0 # param7
+        )
+
+        self.master.mav.send(message)
+
+        response = self.master.recv_match(type='COMMAND_ACK', blocking=True, timeout=timeout)
+        if response:
+            return 0
+        else:
+            return self.TIMEOUT_ERROR
+    
+
+    def disable_message_interval(self, message_type, timeout=TIMEOUT_DURATION):
+        '''
+            Disable the message interval for the specified message type.
+            message_type: str
+            returns:
+                0 if the message interval was disabled successfully
+                101 if the response timed out
+        '''
+
+        message = self.master.mav.command_long_encode(
+            0, # target_system
+            0, # target_component
+            mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL, # command
+            0, # confirmation
+            message_type, # param1
+            -1, # param2 # -1 disables the message
+            0, # param3
+            0, # param4
+            0, # param5
+            0, # param6
+            0 # param7
+        )
+
+        self.master.mav.send(message)
+
+        response = self.master.recv_match(type='COMMAND_ACK', blocking=True, timeout=timeout)
+        if response:
+            return 0
+        else:
+            return self.TIMEOUT_ERROR

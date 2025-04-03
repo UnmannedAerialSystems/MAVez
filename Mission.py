@@ -57,7 +57,7 @@ class Mission:
 
         return error_codes.get(error_code, f"\nUNKNOWN ERROR ({error_code})\n")
 
-    def load_mission_from_file(self, filename, start=0, end=-1, first_seq=-1):
+    def load_mission_from_file(self, filename, start=0, end=-1, first_seq=-1, overwrite=True):
         '''
             Load a mission from a file.
             filename: str
@@ -95,6 +95,10 @@ class Mission:
             print('End index out of range')
             return END_OUT_OF_RANGE
 
+        # prevent re-loading of mission items to the same mission
+        if overwrite:
+            self.mission_items = []
+
         # slice out intended lines
         # if no end is specified, slice to the end of the file
         # index + 1 to skip the header
@@ -109,8 +113,9 @@ class Mission:
                 continue
 
             parts = line.strip().split('\t')
-
-            if first_seq != -1:
+            
+            # jump seq ahead if first_seq is not -1
+            if first_seq != -1: 
                 seq = first_seq
                 first_seq += 1
             else:
@@ -149,6 +154,7 @@ class Mission:
                 file.write(f'{mission_item.seq}\t{mission_item.current}\t{mission_item.frame}\t{mission_item.command}\t{mission_item.param1}\t{mission_item.param2}\t{mission_item.param3}\t{mission_item.param4}\t{mission_item.x}\t{mission_item.y}\t{mission_item.z}\t{mission_item.auto_continue}\n')
 
         return 0
+
 
     def add_mission_item(self, mission_item):
         '''

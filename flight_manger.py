@@ -232,8 +232,8 @@ class Flight:
         print("Appended exit mission item")
         print(exit_mission_item)
 
-        # Load the rest of the mission from the file
-        result = self.airdrop_mission.load_mission_from_file(airdrop_mission_file, start=target_index, first_seq=target_index + 3)
+        # Load the rest of the mission from the file, don't overwrite the existing mission items
+        result = self.airdrop_mission.load_mission_from_file(airdrop_mission_file, start=target_index, first_seq=target_index + 3, overwrite=False)
         # verify that the mission was loaded successfully
         if result:
             return result
@@ -360,20 +360,10 @@ class Flight:
         '''
         landing_status = -1
 
-        # begin receiving landing status
-        self.controller.master.mav.command_long_send(
-            0, # target_system
-            0, # target_component
-            mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL, # command
-            0, # confirmation
-            245, # param1 - message to receive - 245 is landing status (EXTENDED_SYS_STATE)
-            1e6, # param2 - interval in microseconds
-            0, # param3
-            0, # param4
-            0, # param5
-            0, # param6
-            0 # param7
-        )
+        # start receiving landing status
+        response = self.controller.set_message_interval(message_type=245, interval = 1e6) # 245 is landing status (EXTENDED_SYS_STATE), 1e6 is 1 second
+        if response:
+            return response
 
         # wait for landing status to be landed
         start_time = time.time()
@@ -382,36 +372,24 @@ class Flight:
             # check for timeout
             if time.time() - start_time > timeout:
                 response = self.controller.TIMEOUT_ERROR
-                break
+                return response
 
             # get the landing status
             response = self.controller.receive_landing_status()
 
             # verify that the response was received
             if response == self.controller.TIMEOUT_ERROR:
-                break
+                return response
 
             landing_status = response
         
         # stop receiving landing status
-        self.controller.master.mav.command_long_send(
-            0, # target_system
-            0, # target_component
-            mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL, # command
-            0, # confirmation
-            245, # param1 - message to receive - 245 is landing status (EXTENDED_SYS_STATE)
-            -1, # param2 - -1 to stop receiving
-            0, # param3
-            0, # param4
-            0, # param5
-            0, # param6
-            0 # param7
-        )
-
-        if response != 1: # return the error code if the drone did not land
+        response = self.controller.disable_message_interval(message_type=245) # 245 is landing status (EXTENDED_SYS_STATE)
+        if response:
             return response
+        
+        return 0
 
-    
 
     def preflight_check(self, land_mission_file, geofence_file, home_coordinate=Coordinate(0, 0, 0)):
         '''
