@@ -15,10 +15,10 @@ python3 ../MAVLink/ardupilot/Tools/autotest/sim_vehicle.py -v ArduPlane --consol
 
 '''
 
-from Coordinate import Coordinate
-from Mission import Mission
-from Mission_Item import Mission_Item
-from mav_controller import Controller
+from MavEZ.Coordinate import Coordinate
+from MavEZ.Mission import Mission
+from MavEZ.Mission_Item import Mission_Item
+from MavEZ.mav_controller import Controller
 from pymavlink import mavutil
 import time
 import sys
@@ -108,7 +108,10 @@ class Flight:
             return response
         
         # wait for mission to be fully received
-        time.sleep(3)
+        # Countdown from 5
+        for i in range(5, 0, -1):
+            print(f"Starting in {i} seconds...")
+            time.sleep(1)
 
         # set the mode to AUTO
         print("Setting mode to AUTO")
@@ -346,6 +349,68 @@ class Flight:
             return response
 
         return result
+    
+    
+    def wait_for_landed(self, timeout=30):
+        '''
+            Wait for the drone to land.
+            returns:
+                0 if the drone landed successfully
+                nonzero if the drone failed to land
+        '''
+        landing_status = -1
+
+        # begin receiving landing status
+        self.controller.master.mav.command_long_send(
+            0, # target_system
+            0, # target_component
+            mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL, # command
+            0, # confirmation
+            245, # param1 - message to receive - 245 is landing status (EXTENDED_SYS_STATE)
+            1e6, # param2 - interval in microseconds
+            0, # param3
+            0, # param4
+            0, # param5
+            0, # param6
+            0 # param7
+        )
+
+        # wait for landing status to be landed
+        start_time = time.time()
+        while landing_status != 1: # 1 for landed, 2 for in air, 3 for taking off, 4 for currently landing, 0 for unknown
+
+            # check for timeout
+            if time.time() - start_time > timeout:
+                response = self.controller.TIMEOUT_ERROR
+                break
+
+            # get the landing status
+            response = self.controller.receive_landing_status()
+
+            # verify that the response was received
+            if response == self.controller.TIMEOUT_ERROR:
+                break
+
+            landing_status = response
+        
+        # stop receiving landing status
+        self.controller.master.mav.command_long_send(
+            0, # target_system
+            0, # target_component
+            mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL, # command
+            0, # confirmation
+            245, # param1 - message to receive - 245 is landing status (EXTENDED_SYS_STATE)
+            -1, # param2 - -1 to stop receiving
+            0, # param3
+            0, # param4
+            0, # param5
+            0, # param6
+            0 # param7
+        )
+
+        if response != 1: # return the error code if the drone did not land
+            return response
+
     
 
     def preflight_check(self, land_mission_file, geofence_file, home_coordinate=Coordinate(0, 0, 0)):

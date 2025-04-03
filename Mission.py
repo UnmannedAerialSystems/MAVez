@@ -8,8 +8,8 @@ PSU UAS
 This class represents a mission for the drone.
 '''
 
-from Mission_Item import Mission_Item
-from Coordinate import Coordinate
+from MavEZ.Mission_Item import Mission_Item
+from MavEZ.Coordinate import Coordinate
 import time
 
 class Mission:

@@ -12,7 +12,7 @@ Controller class - facilitates communication with the drone.
 '''
 
 from pymavlink import mavutil
-from Coordinate import Coordinate
+from MavEZ.Coordinate import Coordinate
 
 class Controller:
     '''
@@ -406,7 +406,7 @@ class Controller:
             return self.TIMEOUT_ERROR
     
 
-    def await_channel_input(self, timeout=TIMEOUT_DURATION):
+    def receive_channel_input(self, timeout=TIMEOUT_DURATION):
         '''
             Wait for a channel input message from the drone.
             channel: int
@@ -422,7 +422,7 @@ class Controller:
             return self.TIMEOUT_ERROR
         
     
-    def await_wind(self, timeout=TIMEOUT_DURATION):
+    def receive_wind(self, timeout=TIMEOUT_DURATION):
         '''
         Wait for a wind_cov message from the drone.
         returns:
@@ -435,3 +435,16 @@ class Controller:
         else:
             return self.TIMEOUT_ERROR
         
+    
+    def receive_landing_status(self, timeout=TIMEOUT_DURATION):
+        '''
+        Wait for a landed_state message from the drone.
+        returns:
+            response if a landed_state message was received
+            101 if the response timed out
+        '''
+        response = self.master.recv_match(type='EXTENDED_SYS_STATE', blocking=True, timeout=timeout)
+        if response:
+            return response.landed_state
+        else:
+            return self.TIMEOUT_ERROR
