@@ -1,12 +1,11 @@
 '''
 flight_manager.py
-version: 1.0.2
 
 Theodore Tasman
 2025-01-30
 PSU UAS
 
-This module is responsible for managing the flight of the drone.
+This module is responsible fcsor managing the flight of the drone.
 
 Flight class - manages the flight plan of the drone.
 
@@ -36,13 +35,14 @@ class Flight:
     
     PREFLIGHT_CHECK_ERROR = 301
     DETECT_LOAD_ERROR = 302
+    AIRDROP_NOT_BUILT_ERROR = 303
 
-    def __init__(self):
+    def __init__(self, connection_string='tcp:127.0.0.1:5762'):
         '''
             Initialize the flight manager.
         '''
         # Create a controller object
-        self.controller = Controller()
+        self.controller = Controller(connection_string)
 
         # initialize preflight check
         self.preflight_check_done = False
@@ -146,7 +146,7 @@ class Flight:
         '''
 
         # Load the mission from the file up to the target index
-        result = self.airdrop_mission.load_mission_from_file(airdrop_mission_file, end=target_index)
+        result = self.airdrop_mission.load_mission_from_file(airdrop_mission_file, end=target_index - 1)
         
         # verify that the mission was loaded successfully
         if result:
@@ -246,7 +246,13 @@ class Flight:
         '''
             Append the airdrop mission to the mission list.
         '''
+        # Check if the airdrop mission is empty
+        if self.airdrop_mission.get_length() == 0:
+            return self.AIRDROP_NOT_BUILT_ERROR
+
         self.mission_list.append(self.airdrop_mission)
+
+        return 0
     
 
     def append_detect_mission(self, detect_mission_file=None):
@@ -255,10 +261,14 @@ class Flight:
         '''
         if self.detect_mission.get_length() == 0:
             
-            # Check if file is provided     "it'd be cleaner to store the missions as mission objects instead of filenames but I decided it's better to save memory"
+            # Check if file is provided
             if detect_mission_file:
-                self.detect_mission.load_mission_from_file(detect_mission_file)
+                response = self.detect_mission.load_mission_from_file(detect_mission_file)
 
+                # verify that the mission was loaded successfully
+                if response:
+                    return response
+                
             # if no file provided, return error
             else:
                 return self.DETECT_LOAD_ERROR
@@ -266,6 +276,7 @@ class Flight:
 
         self.mission_list.append(self.detect_mission)
 
+        return 0
 
     def append_mission(self, filename):
         '''
