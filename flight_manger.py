@@ -453,6 +453,26 @@ class Flight:
         self.preflight_check_done = True
 
         return 0
+    
+    def jump_to_next_mission_item(self):
+        '''
+            Jump to the next mission item.
+            returns:
+                0 if the mission item was jumped to successfully
+                nonzero if the mission item failed to jump to
+        '''
+
+        # wait for the current mission target to be received (should be broadcast by default)
+        response = self.controller.await_current_mission_index()
+        if response == self.controller.TIMEOUT_ERROR:
+            return response
+    
+        # jump to the next mission item
+        response = self.controller.set_current_mission_index(response + 1)
+        if response:
+            return response
+        
+        return 0
         
 
 

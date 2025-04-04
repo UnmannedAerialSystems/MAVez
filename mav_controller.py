@@ -513,3 +513,51 @@ class Controller:
             return 0
         else:
             return self.TIMEOUT_ERROR
+    
+
+    def await_current_mission_index(self):
+        '''
+            Get the current mission index.
+            returns:
+                current mission index
+        '''
+
+        response = self.master.recv_match(type='MISSION_CURRENT', blocking=True, timeout=self.TIMEOUT_DURATION)
+        if response:
+            return response.seq
+        else:
+            return self.TIMEOUT_ERROR
+        
+    
+    def set_current_mission_index(self, index):
+        '''
+            sets the target mission index to the specified index
+            index: int
+            returns:
+                0 if the mission index was set successfully
+                101 if the response timed out
+        '''
+
+        MISSION_INDEX_OUT_OF_RANGE = 102
+
+        message = self.master.mav.command_long_encode(
+            0, # target_system
+            0, # target_component
+            mavutil.mavlink.MAV_CMD_DO_SET_MISSION_CURRENT, # command
+            0, # confirmation
+            index, # param1
+            0, # param2
+            0, # param3
+            0, # param4
+            0, # param5
+            0, # param6
+            0 # param7
+        )
+        self.master.mav.send(message)
+        response = self.master.recv_match(type='COMMAND_ACK', blocking=True, timeout=self.TIMEOUT_DURATION)
+        if response == self.master.mavlink.MAV_RESULT_FAILED:
+            return MISSION_INDEX_OUT_OF_RANGE
+        elif response == self.master.mavlink.MAV_RESULT_ACCEPTED:
+            return 0
+        else:
+            return self.TIMEOUT_ERROR
