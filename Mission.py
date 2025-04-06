@@ -201,34 +201,6 @@ class Mission:
         print("Mission sent successfully")
         return 0
 
-    
-    def wait_for_channel_input(self, channel, value, timeout=10, wait_time=120):
-        '''
-        wait for a specific rc channel to reach a specific value
-        channel: int
-        value: int
-        timeout: int
-        returns:
-            0 if the rc channel reached the value
-            101 if the timeout was reached
-        '''
-        latest_value = -float('inf')
-        start_time = time.time()
-        while latest_value != value:
-            response = self.controller.await_channel_input(channel, timeout)
-
-            if response == self.controller.TIMEOUT_ERROR:
-                return response
-            
-            latest_value = response
-            if latest_value > value:
-                print(f'Channel {channel} value: {latest_value}')
-                return 0
-
-            # check for timeout
-            if time.time() - start_time > timeout:
-                print(f'Channel was not set to {value} within {timeout} seconds')
-                return self.TIMEOUT_ERROR
 
     
     def clear_mission(self):

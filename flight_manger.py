@@ -463,16 +463,55 @@ class Flight:
         '''
 
         # wait for the current mission target to be received (should be broadcast by default)
+        print("Waiting for current mission index")
         response = self.controller.await_current_mission_index()
         if response == self.controller.TIMEOUT_ERROR:
             return response
-    
+
+        print(f"Current mission index: {response}")
         # jump to the next mission item
         response = self.controller.set_current_mission_index(response + 1)
         if response:
             return response
         
         return 0
+    
+
+    def wait_for_channel_input(self, channel, value, timeout=10, wait_time=120, value_tolerance=0):
+        '''
+        wait for a specific rc channel to reach a specific value
+        channel: int
+        value: int
+        timeout: int
+        returns:
+            0 if the rc channel reached the value
+            101 if the timeout was reached
+        '''
+        latest_value = -float('inf')
+        start_time = time.time()
+
+        channel = f'chan{channel}_raw'
+
+        # wait for the rc channel to reach the value range
+        while time.time() - start_time < wait_time:
+
+            # get channel inputs
+            response = self.controller.receive_channel_input(timeout)
+
+            if response == self.controller.TIMEOUT_ERROR:
+                return response
+            
+
+            # channel key is 'chanX_raw' where X is the channel number
+            latest_value = getattr(response, channel)
+            print(f'Latest value: {latest_value}')
+            # check if the value is within the tolerance range
+            if latest_value > value - value_tolerance and latest_value < value + value_tolerance:
+                print(f'Channel {channel} value: {latest_value}')
+                return 0
+
+        print(f'Channel was not set to {value} within {timeout} seconds')
+        return self.TIMEOUT_ERROR
         
 
 

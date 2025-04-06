@@ -30,14 +30,14 @@ class Controller:
 
     TIMEOUT_DURATION = 5 # timeout duration in seconds
 
-    def __init__(self, connection_string='tcp:127.0.0.1:5762'):
+    def __init__(self, connection_string='tcp:127.0.0.1:5762', baud=57600):
         '''
             Initialize the controller.
             connection_string: str
             verbose: bool
         '''
 
-        self.master = mavutil.mavlink_connection(connection_string)
+        self.master = mavutil.mavlink_connection(connection_string, baud=baud)
 
         response = self.master.wait_heartbeat(blocking=True, timeout=self.TIMEOUT_DURATION)
 
@@ -156,6 +156,7 @@ class Controller:
             return UNKNOWN_MODE
         
         mode_id = self.master.mode_mapping()[mode]
+        print('Mode ID:', mode_id)
         message = self.master.mav.command_long_encode(
             0, # target_system
             0, # target_component
@@ -555,9 +556,9 @@ class Controller:
         )
         self.master.mav.send(message)
         response = self.master.recv_match(type='COMMAND_ACK', blocking=True, timeout=self.TIMEOUT_DURATION)
-        if response == self.master.mavlink.MAV_RESULT_FAILED:
+        if response == 4: # 4 is MAV_RESULT_FAILED; valid command but rejected, in this context for out of range index
             return MISSION_INDEX_OUT_OF_RANGE
-        elif response == self.master.mavlink.MAV_RESULT_ACCEPTED:
+        elif response == 0: # 0 is MAV_RESULT_ACCEPTED; command accepted
             return 0
         else:
             return self.TIMEOUT_ERROR
