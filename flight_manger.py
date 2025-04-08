@@ -152,6 +152,8 @@ class Flight:
         if result:
             return result
 
+        # TODO: account for wind
+
         # Set the target coordinate altitude
         target_coordinate.alt = altitude
 
@@ -490,20 +492,22 @@ class Flight:
         latest_value = -float('inf')
         start_time = time.time()
 
+        # set the channel to be received
         channel = f'chan{channel}_raw'
 
-        # wait for the rc channel to reach the value range
+        # only wait for the channel to be set for a certain amount of time
         while time.time() - start_time < wait_time:
 
             # get channel inputs
             response = self.controller.receive_channel_input(timeout)
 
+            # verify that the response was received
             if response == self.controller.TIMEOUT_ERROR:
                 return response
             
-
             # channel key is 'chanX_raw' where X is the channel number
             latest_value = getattr(response, channel)
+
             print(f'Latest value: {latest_value}')
             # check if the value is within the tolerance range
             if latest_value > value - value_tolerance and latest_value < value + value_tolerance:
