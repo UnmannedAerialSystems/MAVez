@@ -39,7 +39,6 @@ class Coordinate:
         if use_int:
             self.lat = int(self.lat * 1e7)
             self.lon = int(self.lon * 1e7)
-            self.alt = int(self.alt)
     
     def __str__(self):
         return f'{self.lat} {self.lon} {self.alt}'

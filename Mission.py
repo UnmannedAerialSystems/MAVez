@@ -197,8 +197,14 @@ class Mission:
         response = self.controller.await_mission_ack()
         if response:
             return response
-        
+
         print("Mission sent successfully")
+        # start the mission
+        if self.type == 0: # if the mission is a waypoint mission
+            print("Starting mission")
+            self.controller.set_mode('AUTO') # set the mode to AUTO
+            self.controller.start_mission(0, len(self.mission_items) - 1)
+
         return 0
 
 
@@ -221,7 +227,7 @@ class Mission:
         
         return 0
     
-    def get_length(self): 
+    def __len__(self): 
         return len(self.mission_items)
     
 

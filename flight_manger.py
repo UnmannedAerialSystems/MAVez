@@ -55,7 +55,7 @@ class Flight:
         self.geofence = Mission(self.controller, type=1) # type 1 is geofence
 
         # initialize mission list
-        self.mission_list = [self.takeoff_mission]
+        self.mission_list = [self.detect_mission] # TODO: takeoff mission
 
 
     def decode_error(self, error_code):
@@ -313,6 +313,9 @@ class Flight:
 
             latest_waypoint = response
             print(f'Waypoint reached: {latest_waypoint}')
+        
+        print(f'Waypoint {target} reached')
+        return 0
 
 
     def wait_and_send_next_mission(self):
@@ -336,11 +339,13 @@ class Flight:
         
         # otherwise, set the next mission to the next mission in the list
         else:
-            print("Queuing next mission in list")
+            print(f"Queuing next mission in list (of {len(self.mission_list)})")
             next_mission = self.mission_list[0]
 
         # calculate the target index
-        target_index = current_mission.get_length() - 1
+        target_index = len(current_mission) - 1
+
+        print(f"Waiting for waypoint {target_index} to be reached")
 
         # Wait for the target index to be reached
         response = self.wait_for_waypoint_reached(target_index, 30)
@@ -516,6 +521,22 @@ class Flight:
 
         print(f'Channel was not set to {value} within {timeout} seconds')
         return self.TIMEOUT_ERROR
+    
+
+    def get_altitude(self):
+        '''
+            Get the altitude of the drone.
+            returns:
+                altitude: float
+        '''
+        # get the altitude
+        response = self.controller.receive_altitude()
+
+        # verify that the response was received
+        if response == self.controller.TIMEOUT_ERROR:
+            return response
+        
+        return response
         
 
 

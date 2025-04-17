@@ -156,7 +156,6 @@ class Controller:
             return UNKNOWN_MODE
         
         mode_id = self.master.mode_mapping()[mode]
-        print('Mode ID:', mode_id)
         message = self.master.mav.command_long_encode(
             0, # target_system
             0, # target_component
@@ -308,6 +307,7 @@ class Controller:
         else:
             return self.TIMEOUT_ERROR
 
+
     def set_home(self, home_coordinate=Coordinate(0, 0, 0)):
         '''
             Set the home location of the drone.
@@ -317,26 +317,36 @@ class Controller:
                 101 if the response timed out
         '''
 
+        # use_current is set to True if the home coordinate is (0, 0, 0)
         use_current = home_coordinate == (0, 0, 0)
+        print(home_coordinate.alt)
+        print(self.receive_gps())
+        # if alt is 0, use the current altitude
+        home_coordinate.alt = self.receive_gps().alt if home_coordinate.alt == 0 else home_coordinate.alt
 
-        message = self.master.mav.command_long_encode(
+        message = self.master.mav.command_int_encode(
             0, # target_system
             0, # target_component
+            0, # frame - MAV_FRAME_GLOBAL
             mavutil.mavlink.MAV_CMD_DO_SET_HOME, # command
-            0, # confirmation
+            0, # current
+            0, # auto continue
             1 if use_current else 0, # param1
             0, # param2
             0, # param3
             0, # param4
-            home_coordinate.lat / 1e7, # param5     for some reason, setting home requires float coordinates unlike mission items
-            home_coordinate.lon / 1e7, # param6     that took me an hour to figure out
-            home_coordinate.alt # param7
+            home_coordinate.lat, # param5     for some reason, setting home requires float coordinates unlike mission items
+            home_coordinate.lon, # param6     that took me an hour to figure out
+            int(home_coordinate.alt) # param7
         )
+
+        print(message)
 
         self.master.mav.send(message)
 
         response = self.master.recv_match(type='COMMAND_ACK', blocking=True, timeout=self.TIMEOUT_DURATION)
         if response:
+            print(response)
             return 0
         else:
             return self.TIMEOUT_ERROR
@@ -433,6 +443,22 @@ class Controller:
         response = self.master.recv_match(type='WIND_COV', blocking=True, timeout=timeout)
         if response:
             return response
+        else:
+            return self.TIMEOUT_ERROR
+        
+    
+    def receive_gps(self, timeout=TIMEOUT_DURATION):
+        '''
+        Wait for a gps_raw_int message from the drone.
+        returns:
+            response if a gps_raw_int message was received
+            101 if the response timed out
+        '''
+        response = self.master.recv_match(type='GLOBAL_POSITION_INT', blocking=True, timeout=timeout)
+
+        if response:
+            print(response)
+            return Coordinate(response.lat, response.lon, response.alt/1000, use_int=False) # convert to meters, lat and lon are in degrees e7
         else:
             return self.TIMEOUT_ERROR
         
@@ -559,6 +585,38 @@ class Controller:
         if response == 4: # 4 is MAV_RESULT_FAILED; valid command but rejected, in this context for out of range index
             return MISSION_INDEX_OUT_OF_RANGE
         elif response == 0: # 0 is MAV_RESULT_ACCEPTED; command accepted
+            return 0
+        else:
+            return self.TIMEOUT_ERROR
+        
+    
+    def start_mission(self, start_index, end_index):
+        '''
+            Start the mission at the specified index.
+            index: int
+            returns:
+                0 if the mission was started successfully
+                101 if the response timed out
+        '''
+
+        message = self.master.mav.command_long_encode(
+            0, # target_system
+            0, # target_component
+            mavutil.mavlink.MAV_CMD_MISSION_START, # command
+            0, # confirmation
+            start_index, # param1
+            end_index, # param2
+            0, # param3
+            0, # param4
+            0, # param5
+            0, # param6
+            0 # param7
+        )
+
+        self.master.mav.send(message)
+
+        response = self.master.recv_match(type='COMMAND_ACK', blocking=True, timeout=self.TIMEOUT_DURATION)
+        if response:
             return 0
         else:
             return self.TIMEOUT_ERROR
