@@ -1,0 +1,12 @@
+Metadata-Version: 2.1
+Name: MAVez
+Version: 1.0
+Summary: A Python library for controlling MAVLink drones
+Author: Ted Tasman
+License: MIT
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Requires-Dist: pymavlink
+Requires-Dist: pyserial
