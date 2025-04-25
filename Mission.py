@@ -27,6 +27,9 @@ class Mission:
     # if an error is function specific, it will be defined in the function and documented in class docstring
     TIMEOUT_ERROR = 101
 
+    # time to wait for mission to be sent
+    MISSION_SEND_TIMEOUT = 20 # seconds
+
 
     def __init__(self, controller, type=0):
         '''
@@ -80,19 +83,23 @@ class Mission:
             with open(filename, 'r') as file:
                 lines = file.readlines()
         except FileNotFoundError:
-            print(f'File {filename} not found')
+            if self.controller.logger:
+                self.controller.logger.error(f"[Mission] File not found: {filename}")
             return FILE_NOT_FOUND
 
         if len(lines) == 0:
-            print('File is empty')
+            if self.controller.logger:
+                self.controller.logger.error(f"[Mission] File is empty: {filename}")
             return FILE_EMPTY
         
         elif start >= len(lines) - 1:
-            print('Start index out of range')
+            if self.controller.logger:
+                self.controller.logger.error(f"[Mission] Start index out of range: {start} >= {len(lines) - 1}")
             return START_OUT_OF_RANGE
         
         elif end != -1 and end >= len(lines) - 1:
-            print('End index out of range')
+            if self.controller.logger:
+                self.controller.logger.error(f"[Mission] End index out of range: {end} >= {len(lines) - 1}")
             return END_OUT_OF_RANGE
 
         # prevent re-loading of mission items to the same mission
@@ -137,7 +144,8 @@ class Mission:
             mission_item = Mission_Item(seq, frame, command, current, auto_continue, item_coordinate, self.type, param1, param2, param3, param4)
             self.mission_items.append(mission_item)
         
-        print(f'Loaded {len(self.mission_items)} mission items from {filename}')
+        if self.controller.logger:
+            self.controller.logger.info(f"[Mission] Loaded {len(self.mission_items)} mission items from {filename}")
         return 0
 
 
@@ -153,6 +161,8 @@ class Mission:
             for mission_item in self.mission_items:
                 file.write(f'{mission_item.seq}\t{mission_item.current}\t{mission_item.frame}\t{mission_item.command}\t{mission_item.param1}\t{mission_item.param2}\t{mission_item.param3}\t{mission_item.param4}\t{mission_item.x}\t{mission_item.y}\t{mission_item.z}\t{mission_item.auto_continue}\n')
 
+        if self.controller.logger:
+            self.controller.logger.info(f"[Mission] Saved {len(self.mission_items)} mission items to {filename}")
         return 0
 
 
@@ -180,35 +190,42 @@ class Mission:
         # send mission count
         self.controller.send_mission_count(len(self.mission_items), self.type)
 
-        # loop through mission items and send them
-        for mission_item in self.mission_items:
-
+        # continuous loop to await mission request, or timeout
+        start_time = time.time()
+        while True:
             # await mission request
-            response = self.controller.await_mission_request()
-            if response:
-                return response
-            
-            # send next mission item
-            print(mission_item.seq)
-            self.controller.send_message(mission_item.message)
-        
-        print("Awaiting mission ack")
-        # await mission ack confirming mission was received 
-        response = self.controller.await_mission_ack()
-        if response:
-            return response
+            seq = self.controller.await_mission_request()
 
-        print("Mission sent successfully")
+            # verify seq is not an error
+            if seq == self.controller.TIMEOUT_ERROR:
+                return self.TIMEOUT_ERROR
+            
+            # send corresponding mission item
+            self.controller.send_message(self.mission_items[seq].message)
+
+            # check if all mission items have been sent
+            if seq == len(self.mission_items) - 1:
+                break
+
+            # check for timeout
+            if time.time() - start_time > self.MISSION_SEND_TIMEOUT:
+                if self.controller.logger:
+                    self.controller.logger.error(f"[Mission] Mission send timeout after {self.MISSION_SEND_TIMEOUT} seconds")
+                return self.TIMEOUT_ERROR
+        
+        # after sending all mission items, wait for mission acknowledgement
+        response = self.controller.await_mission_ack() # returns 0 if successful
+        if response:
+            return response # propagate error code
+        
         # start the mission
         if self.type == 0: # if the mission is a waypoint mission
-            print("Starting mission")
             self.controller.set_mode('AUTO') # set the mode to AUTO
             self.controller.start_mission(0, len(self.mission_items) - 1)
 
         return 0
 
 
-    
     def clear_mission(self):
         '''
             Clear the mission from the drone.
@@ -217,58 +234,21 @@ class Mission:
                 101 if the response timed out
         '''
         # send mission clear all
-        print("Clearing mission")
         self.controller.send_clear_mission()
 
         # await mission ack confirming mission was cleared
         response = self.controller.await_mission_ack()
         if response:
+            if self.controller.logger:
+                self.controller.logger.critical("[Mission] Could not clear mission.")
             return response
         
         return 0
     
+    
     def __len__(self): 
         return len(self.mission_items)
     
-
-    def validate_mission_file(filename): # this has to be in state actions so the filepaths match
-        '''
-            Validate a mission from a file.
-            filename: str
-            start: int
-            end: int
-            returns:
-                0 if the mission was loaded successfully
-                201 if the file was not found
-                202 if the file was empty
-        '''
-
-        FILE_NOT_FOUND = 201
-        FILE_EMPTY = 202
-
-        try:
-            with open(filename, 'r') as file:
-                lines = file.readlines()
-        except FileNotFoundError:
-            print(f'File {filename} not found')
-            return FILE_NOT_FOUND
-
-        if len(lines) == 0:
-            print('File is empty')
-            return FILE_EMPTY
-
-        for line in lines[1:]:
-            # skip empty lines
-            if line == '\n':
-                continue
-
-            parts = line.strip().split('\t')
-            if len(parts) != 12:
-                print(f'Invalid line: {line}')
-                return FILE_EMPTY
-        
-        print(f'Verified {len(lines)} items from {filename}')
-        return 0
 
 
 def main():

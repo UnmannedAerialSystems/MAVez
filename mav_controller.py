@@ -27,22 +27,33 @@ class Controller:
     # if an error is function specific, it will be defined in the function and documented in class docstring
     TIMEOUT_ERROR = 101
 
-
     TIMEOUT_DURATION = 5 # timeout duration in seconds
 
-    def __init__(self, connection_string='tcp:127.0.0.1:5762', baud=57600):
+    def __init__(self, connection_string='tcp:127.0.0.1:5762', baud=57600, logger=None):
         '''
             Initialize the controller.
             connection_string: str
             verbose: bool
         '''
-
+        self.logger = logger
+        
         self.master = mavutil.mavlink_connection(connection_string, baud=baud)
 
         response = self.master.wait_heartbeat(blocking=True, timeout=self.TIMEOUT_DURATION)
 
+        # check if the connection was successful
         if not response:
-            raise Exception('Error in Controller initialization - no heartbeat received')
+            if self.logger:
+                self.logger.error('[Controller] Connection failed')
+            raise ConnectionError('Connection failed')
+    
+
+    def set_logger(self, logger):
+        '''
+            Set the logger for the controller.
+            logger: logger
+        '''
+        self.logger = logger
 
     def decode_error(self, error_code):
         '''
@@ -52,7 +63,7 @@ class Controller:
         '''
         errors_dict = {
             101: "\nRESPONSE TIMEOUT ERROR (101)\n",
-            102: "\nUNKNOWN MODE ERROR (102)\n",
+            111: "\nUNKNOWN MODE ERROR (102)\n",
         }
 
         return errors_dict.get(error_code, f'UNKNOWN ERROR ({error_code})')
@@ -61,15 +72,21 @@ class Controller:
         '''
             Wait for a mission request from the drone.
             returns:
-                0 if a mission request was received
+                mission index if a mission request was received
                 101 if the response timed out
         '''
 
+        # MISSION_REQUEST IS DEPRECATED, but likely still used. (replaced by MISSION_REQUEST_INT)
+        # Always respond with MISSION_ITEM_INT.
+        # If this stops working, try receiving MISSION_REQUEST_INT instead.
         response = self.master.recv_match(type='MISSION_REQUEST', blocking=True, timeout=self.TIMEOUT_DURATION)
         if response:
-            print(str(response.seq) + '<-', end='')
-            return 0
+            if self.logger:
+                self.logger.info(f'[Controller] Received mission request: {response.seq}')
+            return response.seq
         else:
+            if self.logger:
+                self.logger.error('[Controller] Mission request timed out')
             return self.TIMEOUT_ERROR
 
 
@@ -83,8 +100,17 @@ class Controller:
 
         response = self.master.recv_match(type='MISSION_ACK', blocking=True, timeout=self.TIMEOUT_DURATION)
         if response:
-            return 0
+            if response.type == 0:
+                if self.logger:
+                    self.logger.info(f'[Controller] Received mission ack.')
+                return 0
+            else:
+                if self.logger:
+                    self.logger.error(f'[Controller] Mission ack error: {response.type}')
+                return response.type
         else:
+            if self.logger:
+                self.logger.error('[Controller] Mission ack timed out')
             return self.TIMEOUT_ERROR
 
 
@@ -93,7 +119,6 @@ class Controller:
             Send a message to the drone. DOES NOT AWAIT RESPONSE.
             message: mavlink message
         '''
-
         self.master.mav.send(message)
 
 
@@ -115,6 +140,9 @@ class Controller:
             count, # count
             mission_type # mission_type
         )
+        if self.logger:
+            self.logger.info(f'[Controller] Sent mission count: {count}')
+        return 0
 
     def await_mission_item_reached(self, timeout=TIMEOUT_DURATION):
         '''
@@ -126,8 +154,12 @@ class Controller:
 
         response = self.master.recv_match(type='MISSION_ITEM_REACHED', blocking=True, timeout=timeout)
         if response:
+            if self.logger:
+                self.logger.info(f'[Controller] Received mission item reached: {response.seq}')
             return response.seq
         else:
+            if self.logger:
+                self.logger.error('[Controller] Mission item reached timed out')
             return self.TIMEOUT_ERROR
         
     def send_clear_mission(self):
@@ -138,6 +170,9 @@ class Controller:
         '''
 
         self.master.waypoint_clear_all_send()
+        if self.logger:
+            self.logger.info('[Controller] Sent clear mission')
+        return 0
 
     def set_mode(self, mode):
         '''
@@ -151,8 +186,8 @@ class Controller:
         UNKNOWN_MODE = 111
 
         if mode not in self.master.mode_mapping():
-            print('Unknown mode : {}'.format(mode))
-            print('Try:', list(self.master.mode_mapping().keys()))
+            if self.logger:
+                self.logger.error(f'[Controller] Unknown mode: {mode}')
             return UNKNOWN_MODE
         
         mode_id = self.master.mode_mapping()[mode]
@@ -174,8 +209,17 @@ class Controller:
 
         response = self.master.recv_match(type='COMMAND_ACK', blocking=True, timeout=self.TIMEOUT_DURATION)
         if response:
-            return 0
+            if response.result == 0:
+                if self.logger:
+                    self.logger.info(f'[Controller] Set mode to {mode}')
+                return 0
+            else:
+                if self.logger:
+                    self.logger.error(f'[Controller] Failed to set mode: {response.result}')
+                return response.result
         else:
+            if self.logger:
+                self.logger.error('[Controller] Set mode timed out')
             return self.TIMEOUT_ERROR
         
     
@@ -207,8 +251,17 @@ class Controller:
 
         response = self.master.recv_match(type='COMMAND_ACK', blocking=True, timeout=self.TIMEOUT_DURATION)
         if response:
-            return 0
+            if response.result == 0:
+                if self.logger:
+                    self.logger.info('[Controller] Drone armed successfully')
+                return 0
+            else:
+                if self.logger:
+                    self.logger.error(f'[Controller] Failed to arm drone: {response.result}')
+                return response.result
         else:
+            if self.logger:
+                self.logger.error('[Controller] Arm command timed out')
             return self.TIMEOUT_ERROR
     
 
@@ -240,8 +293,17 @@ class Controller:
 
         response = self.master.recv_match(type='COMMAND_ACK', blocking=True, timeout=self.TIMEOUT_DURATION)
         if response:
-            return 0
+            if response.result == 0:
+                if self.logger:
+                    self.logger.info('[Controller] Drone disarmed successfully')
+                return 0
+            else:
+                if self.logger:
+                    self.logger.error(f'[Controller] Failed to disarm drone: {response.result}')
+                return response.result
         else:
+            if self.logger:
+                self.logger.error('[Controller] Disarm command timed out')
             return self.TIMEOUT_ERROR
 
 
@@ -271,8 +333,16 @@ class Controller:
 
         response = self.master.recv_match(type='COMMAND_ACK', blocking=True, timeout=self.TIMEOUT_DURATION)
         if response:
-            return 0
+            if response.result == 0:
+                if self.logger:
+                    self.logger.info('[Controller] Geofence enabled successfully')
+            else:
+                if self.logger:
+                    self.logger.error(f'[Controller] Failed to enable geofence: {response.result}')
+                return response.result
         else:
+            if self.logger:
+                self.logger.error('[Controller] Geofence enable command timed out')
             return self.TIMEOUT_ERROR
 
 
@@ -303,8 +373,17 @@ class Controller:
 
         response = self.master.recv_match(type='COMMAND_ACK', blocking=True, timeout=self.TIMEOUT_DURATION)
         if response:
-            return 0
+            if response.result == 0:
+                if self.logger:
+                    self.logger.info('[Controller] Geofence disabled successfully')
+                return 0
+            else:
+                if self.logger:
+                    self.logger.error(f'[Controller] Failed to disable geofence: {response.result}')
+                return response.result
         else:
+            if self.logger:
+                self.logger.error('[Controller] Geofence disable command timed out')
             return self.TIMEOUT_ERROR
 
 
@@ -319,8 +398,6 @@ class Controller:
 
         # use_current is set to True if the home coordinate is (0, 0, 0)
         use_current = home_coordinate == (0, 0, 0)
-        print(home_coordinate.alt)
-        print(self.receive_gps())
         # if alt is 0, use the current altitude
         home_coordinate.alt = self.receive_gps().alt if home_coordinate.alt == 0 else home_coordinate.alt
 
@@ -335,54 +412,26 @@ class Controller:
             0, # param2
             0, # param3
             0, # param4
-            home_coordinate.lat, # param5     for some reason, setting home requires float coordinates unlike mission items
-            home_coordinate.lon, # param6     that took me an hour to figure out
+            home_coordinate.lat, # param5     
+            home_coordinate.lon, # param6     
             int(home_coordinate.alt) # param7
         )
 
-        print(message)
-
         self.master.mav.send(message)
 
         response = self.master.recv_match(type='COMMAND_ACK', blocking=True, timeout=self.TIMEOUT_DURATION)
         if response:
-            print(response)
-            return 0
+            if response.result == 0:
+                if self.logger:
+                    self.logger.info(f'[Controller] Home location set to {home_coordinate}')
+                return 0
+            else:
+                if self.logger:
+                    self.logger.error(f'[Controller] Failed to set home location: {response.result}')
+                return response.result
         else:
-            return self.TIMEOUT_ERROR
-    
-
-    def run_prearm_checks(self):
-        '''
-            Run prearm checks on the drone.
-            returns:
-                0 if the prearm checks passed
-                101 if the response timed out
-        '''
-
-        message = self.master.mav.command_long_encode(
-            0, # target_system
-            0, # target_component
-            mavutil.mavlink.MAV_CMD_PREFLIGHT_CHECK, # command
-            0, # confirmation
-            0, # param1
-            0, # param2
-            0, # param3
-            0, # param4
-            0, # param5
-            0, # param6
-            0 # param7
-        )
-
-        self.master.mav.send(message)
-
-        response = self.master.recv_match(type='COMMAND_ACK', blocking=True, timeout=self.TIMEOUT_DURATION)
-        if response:
-
-            #TODO: check response for success
-
-            return 0
-        else:
+            if self.logger:
+                self.logger.error('[Controller] Set home location command timed out')
             return self.TIMEOUT_ERROR
 
 
@@ -412,8 +461,17 @@ class Controller:
         self.master.mav.send(message)
         response = self.master.recv_match(type='COMMAND_ACK', blocking=True, timeout=self.TIMEOUT_DURATION)
         if response:
-            return 0
+            if response.result == 0:
+                if self.logger:
+                    self.logger.info(f'[Controller] Set servo {servo_number} to {pwm}')
+                return 0
+            else:
+                if self.logger:
+                    self.logger.error(f'[Controller] Failed to set servo {servo_number}: {response.result}')
+                return response.result
         else:
+            if self.logger:
+                self.logger.error('[Controller] Set servo command timed out')
             return self.TIMEOUT_ERROR
     
 
@@ -428,8 +486,12 @@ class Controller:
 
         response = self.master.recv_match(type='RC_CHANNELS', blocking=True, timeout=timeout)
         if response:
+            if self.logger:
+                self.logger.info(f'[Controller] Received channel input from {response.chancount} channels')
             return response
         else:
+            if self.logger:
+                self.logger.error('[Controller] Receive channel input timed out')
             return self.TIMEOUT_ERROR
         
     
@@ -442,8 +504,12 @@ class Controller:
         '''
         response = self.master.recv_match(type='WIND_COV', blocking=True, timeout=timeout)
         if response:
+            if self.logger:
+                self.logger.info(f'[Controller] Received wind data')
             return response
         else:
+            if self.logger:
+                self.logger.error('[Controller] Receive wind data timed out')
             return self.TIMEOUT_ERROR
         
     
@@ -451,15 +517,18 @@ class Controller:
         '''
         Wait for a gps_raw_int message from the drone.
         returns:
-            response if a gps_raw_int message was received
+            coordinate if a gps_raw_int message was received
             101 if the response timed out
         '''
         response = self.master.recv_match(type='GLOBAL_POSITION_INT', blocking=True, timeout=timeout)
 
         if response:
-            print(response)
+            if self.logger:
+                self.logger.info(f'[Controller] Received GPS data, lat: {response.lat}, lon: {response.lon}, alt: {response.alt/1000}')
             return Coordinate(response.lat, response.lon, response.alt/1000, use_int=False) # convert to meters, lat and lon are in degrees e7
         else:
+            if self.logger:
+                self.logger.error('[Controller] Receive GPS data timed out')
             return self.TIMEOUT_ERROR
         
     
@@ -467,13 +536,21 @@ class Controller:
         '''
         Wait for a landed_state message from the drone.
         returns:
-            response if a landed_state message was received
+            0 - MAV_LANDED_STATE_UNDEFINED
+            1 - MAV_LANDED_STATE_ON_GROUND
+            2 - MAV_LANDED_STATE_IN_AIR
+            3 - MAV_LANDED_STATE_TAKING_OFF
+            4 - MAV_LANDED_STATE_LANDING
             101 if the response timed out
         '''
         response = self.master.recv_match(type='EXTENDED_SYS_STATE', blocking=True, timeout=timeout)
         if response:
+            if self.logger:
+                self.logger.info(f'[Controller] Received landing status: {response.landed_state}')
             return response.landed_state
         else:
+            if self.logger:
+                self.logger.error('[Controller] Receive landing status timed out')
             return self.TIMEOUT_ERROR
     
 
@@ -505,8 +582,17 @@ class Controller:
 
         response = self.master.recv_match(type='COMMAND_ACK', blocking=True, timeout=timeout)
         if response:
-            return 0
+            if response.result == 0:
+                if self.logger:
+                    self.logger.info(f'[Controller] Set message interval for {message_type} to {interval}')
+                return 0
+            else:
+                if self.logger:
+                    self.logger.error(f'[Controller] Failed to set message interval: {response.result}')
+                return response.result
         else:
+            if self.logger:
+                self.logger.error('[Controller] Set message interval command timed out')
             return self.TIMEOUT_ERROR
     
 
@@ -537,8 +623,17 @@ class Controller:
 
         response = self.master.recv_match(type='COMMAND_ACK', blocking=True, timeout=timeout)
         if response:
-            return 0
+            if response.result == 0:
+                if self.logger:
+                    self.logger.info(f'[Controller] Disabled message interval for {message_type}')
+                return 0
+            else:
+                if self.logger:
+                    self.logger.error(f'[Controller] Failed to disable message interval: {response.result}')
+                return response.result
         else:
+            if self.logger:
+                self.logger.error('[Controller] Disable message interval command timed out')
             return self.TIMEOUT_ERROR
     
 
@@ -551,8 +646,12 @@ class Controller:
 
         response = self.master.recv_match(type='MISSION_CURRENT', blocking=True, timeout=self.TIMEOUT_DURATION)
         if response:
+            if self.logger:
+                self.logger.info(f'[Controller] Received current mission index: {response.seq}')
             return response.seq
         else:
+            if self.logger:
+                self.logger.error('[Controller] Receive current mission index timed out')
             return self.TIMEOUT_ERROR
         
     
@@ -564,8 +663,6 @@ class Controller:
                 0 if the mission index was set successfully
                 101 if the response timed out
         '''
-
-        MISSION_INDEX_OUT_OF_RANGE = 102
 
         message = self.master.mav.command_long_encode(
             0, # target_system
@@ -582,11 +679,18 @@ class Controller:
         )
         self.master.mav.send(message)
         response = self.master.recv_match(type='COMMAND_ACK', blocking=True, timeout=self.TIMEOUT_DURATION)
-        if response == 4: # 4 is MAV_RESULT_FAILED; valid command but rejected, in this context for out of range index
-            return MISSION_INDEX_OUT_OF_RANGE
-        elif response == 0: # 0 is MAV_RESULT_ACCEPTED; command accepted
-            return 0
+        if response:
+            if response.result == 0:
+                if self.logger:
+                    self.logger.info(f'[Controller] Set current mission index to {index}')
+                return 0
+            else:
+                if self.logger:
+                    self.logger.error(f'[Controller] Failed to set current mission index: {response.result}')
+                return response.result
         else:
+            if self.logger:
+                self.logger.error('[Controller] Set current mission index command timed out')
             return self.TIMEOUT_ERROR
         
     
@@ -617,6 +721,15 @@ class Controller:
 
         response = self.master.recv_match(type='COMMAND_ACK', blocking=True, timeout=self.TIMEOUT_DURATION)
         if response:
-            return 0
+            if response.result == 0:
+                if self.logger:
+                    self.logger.info(f'[Controller] Started mission from {start_index} to {end_index}')
+                return 0
+            else:
+                if self.logger:
+                    self.logger.error(f'[Controller] Failed to start mission: {response.result}')
+                return response.result
         else:
+            if self.logger:
+                self.logger.error('[Controller] Start mission command timed out')
             return self.TIMEOUT_ERROR
