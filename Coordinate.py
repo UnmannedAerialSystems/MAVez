@@ -45,7 +45,7 @@ class Coordinate:
         self.is_int = use_int
     
     def __str__(self):
-        return f'{self.lat} {self.lon} {self.alt}'
+        return f'{self.lat},{self.lon},{self.alt}'
     
     __repr__ = __str__
 
