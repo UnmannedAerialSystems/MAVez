@@ -11,6 +11,8 @@ For detailed documentation on pymavlink, visit [mavlink.io](https://mavlink.io/e
 - [Example Usage](#example-usage)
 - [Module Overview](#module-overview)
 - [Error Codes](#error-codes)
+- [License](#license)
+- [Authors](#authors)
 
 ## Installation
 1. In a terminal window, run `git clone git@github.com:UnmannedAerialSystems/MAVez.git`
@@ -170,6 +172,9 @@ controller.wait_and_send_next_mission() # wait until takeoff completes, send det
 | `301` | PREFLIGHT CHECK ERROR |Takeoff was attempted before preflight check was completed |
 | `302` | DETECT LOAD ERROR | Attempted to append detect mission without providing file to load or loading it first |
 | `303` | AIRDROP NOT BUILT ERROR | Attempted to append or build airdrop mission without providing file to load or loading it first |
+
+## LICENSE:
+This project is licensed under the [GNU General Public License v3.0](LICENSE).
 
 ## Authors:
 Original Creator: [Ted Tasman](https://github.com/tedtasman)
