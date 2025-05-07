@@ -33,13 +33,13 @@ from MAVez import flight_manager
 
 controller = flight_manager.Flight(connection_string='tcp:127.0.0.1:5762') # connection string for SITL
 
-controller.prefight_check(landing_mission.txt, geofence.txt) # unspecified home coordinate uses current
+controller.prefight_check("sample_missions/landing_mission.txt", "sample_missions/geofence.txt") # unspecified home coordinate uses current
 
 controller.arm() # must arm before takeoff
 
 controller.takeoff(takeoff_mission.txt) # provide takeoff mission at time of takeoff
 
-controller.append_detect_mission(detect_mission.txt) # provide a detect mission
+controller.append_detect_mission("sample_missions/detect_mission.txt") # provide a detect mission
 
 controller.wait_and_send_next_mission() # wait until takeoff completes, send detect mission
 ```
