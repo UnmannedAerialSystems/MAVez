@@ -172,4 +172,4 @@ controller.wait_and_send_next_mission() # wait until takeoff completes, send det
 | `303` | AIRDROP NOT BUILT ERROR | Attempted to append or build airdrop mission without providing file to load or loading it first |
 
 ## Authors:
-Original Creator: (Ted Tasman)[`https://github.com/tedtasman`]
+Original Creator: (Ted Tasman)[https://github.com/tedtasman]
