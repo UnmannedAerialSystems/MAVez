@@ -15,7 +15,7 @@ EARTH_RADIUS = 6378137  # in meters
 
 class Coordinate:
 
-    def __init__(self, lat, lon, alt, dms=False, use_int=True):
+    def __init__(self, lat, lon, alt, dms=False, use_int=True, heading=None):
         '''
             Initialize the coordinate.
             lat: float | str if dms is True
@@ -43,9 +43,11 @@ class Coordinate:
             self.lon = int(self.lon * 1e7)
         
         self.is_int = use_int
+
+        self.heading = heading
     
     def __str__(self):
-        return f'{self.lat},{self.lon},{self.alt}'
+        return f'{self.lat},{self.lon},{self.alt},{self.heading}' if self.heading is not None else f'{self.lat},{self.lon},{self.alt}'
     
     __repr__ = __str__
 
