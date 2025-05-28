@@ -5,7 +5,7 @@ Theodore Tasman
 2025-01-30
 PSU UAS
 
-This module is responsible fcsor managing the flight of the drone.
+This module is responsible for managing the flight of the drone.
 
 Flight class - manages the flight plan of the drone.
 
@@ -25,8 +25,8 @@ import sys
 import os
 # Add the parent directory to the Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from CameraModule import camera_emulator # type: ignore
-from ObjectDetection import lion_sight_emulator # type: ignore
+#from CameraModule import camera_emulator # type: ignore
+#from ObjectDetection import lion_sight_emulator # type: ignore
 
 class Flight(Controller):
     '''
@@ -594,8 +594,6 @@ class Flight(Controller):
         
         return response
         
-
-
 
 
     

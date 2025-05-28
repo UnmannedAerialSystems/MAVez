@@ -524,8 +524,9 @@ class Controller:
 
         if response:
             if self.logger:
-                self.logger.info(f'[Controller] Received GPS data, lat: {response.lat}, lon: {response.lon}, alt: {response.alt/1000}')
-            return Coordinate(response.lat, response.lon, response.alt/1000, use_int=False) # convert to meters, lat and lon are in degrees e7
+                self.logger.info(f'[Controller] Received GPS data, lat: {response.lat}, lon: {response.lon}, alt: {response.alt/1000}, heading: {response.hdg}')
+            return Coordinate(response.lat, response.lon, response.alt/1000, use_int=False, heading=response.hdg) # convert to meters, lat and lon are in degrees e7
+
         else:
             if self.logger:
                 self.logger.error('[Controller] Receive GPS data timed out')
@@ -732,4 +733,23 @@ class Controller:
         else:
             if self.logger:
                 self.logger.error('[Controller] Start mission command timed out')
+            return self.TIMEOUT_ERROR
+        
+    
+    def receive_attitude(self, timeout=TIMEOUT_DURATION):
+        '''
+            Wait for an attitude message from the drone.
+            returns:
+                response if an attitude message was received
+                101 if the response timed out
+        '''
+
+        response = self.master.recv_match(type='ATTITUDE', blocking=True, timeout=timeout)
+        if response:
+            if self.logger:
+                self.logger.info(f'[Controller] Received attitude data: roll={response.roll}, pitch={response.pitch}, yaw={response.yaw}')
+            return response
+        else:
+            if self.logger:
+                self.logger.error('[Controller] Receive attitude data timed out')
             return self.TIMEOUT_ERROR
