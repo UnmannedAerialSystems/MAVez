@@ -37,10 +37,10 @@ class Mission_Item:
         self.x = coordinate.lat
         self.y = coordinate.lon
         self.z = coordinate.alt
-        self.param1 = int(param1)
-        self.param2 = int(param2)
-        self.param3 = int(param3)
-        self.param4 = int(param4)
+        self.param1 = float(param1)
+        self.param2 = float(param2)
+        self.param3 = float(param3)
+        self.param4 = float(param4)
         self.type = type
     
 
@@ -73,4 +73,5 @@ class Mission_Item:
             self.z, # z
             self.type # type
         )
+
         return message
