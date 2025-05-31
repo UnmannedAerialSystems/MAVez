@@ -5,7 +5,7 @@ Theodore Tasman
 2025-01-30
 PSU UAS
 
-This module is responsible fcsor managing the flight of the drone.
+This module is responsible for managing the flight of the drone.
 
 Flight class - manages the flight plan of the drone.
 
@@ -25,8 +25,8 @@ import sys
 import os
 # Add the parent directory to the Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from CameraModule import camera_emulator # type: ignore
-from ObjectDetection import lion_sight_emulator # type: ignore
+#from CameraModule import camera_emulator # type: ignore
+#from ObjectDetection import lion_sight_emulator # type: ignore
 
 class Flight(Controller):
     '''
@@ -133,8 +133,7 @@ class Flight(Controller):
         return 0
         
 
-    # DEPRECATED superseded by the lua script
-    def build_airdrop_mission(self, target_coordinate, airdrop_mission_file, target_index, altitude, heading=0, buffer_distance=100):
+    def build_airdrop_mission(self, target_coordinate, airdrop_mission_file, target_index, altitude, drop_count, heading, buffer_distance=100):
         '''
             Build the airdrop mission.
             target_coordinate: Coordinate
@@ -146,110 +145,144 @@ class Flight(Controller):
         '''
 
         # Load the mission from the file up to the target index
-        result = self.airdrop_mission.load_mission_from_file(airdrop_mission_file, end=target_index - 1)
+        result = self.airdrop_mission.load_mission_from_file(airdrop_mission_file, end=target_index)
         
         # verify that the mission was loaded successfully
         if result:
             return result
-
-        # TODO: account for wind
 
         # Set the target coordinate altitude
         target_coordinate.alt = altitude
 
         # calculate the buffer coordinates
-        entry_coordinate = target_coordinate.offset_coordinate(buffer_distance, heading)
-        exit_coordinate = target_coordinate.offset_coordinate(buffer_distance, heading + 180)
-
+        entry_coordinate = target_coordinate.offset_coordinate(buffer_distance, heading + 180) # entry point is opposite of target
+        exit_coordinate = target_coordinate.offset_coordinate(buffer_distance, heading)
 
         # Create the entry mission item
         entry_mission_item = Mission_Item(
-                                            seq=target_index,
-                                            frame=3, 
-                                            command=16, 
-                                            current=0, 
-                                            auto_continue=1, 
-                                            coordinate=entry_coordinate, 
-                                            type=0, 
-                                            param1=0, 
-                                            param2=0, 
-                                            param3=0, 
-                                            param4=0
+            seq=target_index,
+            frame=3, 
+            command=16, 
+            current=0, 
+            auto_continue=1, 
+            coordinate=entry_coordinate, 
+            type=0, 
+            param1=0, 
+            param2=0, 
+            param3=0, 
+            param4=0
         )
 
+
+        # Create drop script trigger
+        drop_script_trigger = Mission_Item(
+            seq=target_index + 1,
+            frame=3, 
+            command=217,  # MAV_CMD_DO_SEND_SCRIPT_MESSAGE
+            current=0, 
+            auto_continue=1, 
+            coordinate=Coordinate(0, 0, 0),  # unused coordinate
+            type=0, 
+            param1=17491,  # MAVLink message ID for the script message
+            param2=drop_count + 1,  # number of drops
+            param3=0,  # unused
+            param4=0   # unused
+        )
 
         # Create the target mission item
         target_mission_item = Mission_Item(
-                                            seq=target_index + 1,
-                                            frame=3, 
-                                            command=16, 
-                                            current=0, 
-                                            auto_continue=1, 
-                                            coordinate=target_coordinate, 
-                                            type=0, 
-                                            param1=0, 
-                                            param2=0, 
-                                            param3=0, 
-                                            param4=0
+            seq=target_index + 2,
+            frame=3,
+            command=16,
+            current=0, 
+            auto_continue=1,
+            coordinate=target_coordinate,
+            type=0,
+            param1=0,
+            param2=0,
+            param3=0,
+            param4=0
         )
         
-        # Create the exit mission item
-        exit_mission_item = Mission_Item(
-                                            seq=target_index + 2,
-                                            frame=3, 
-                                            command=16, 
-                                            current=0, 
-                                            auto_continue=1, 
-                                            coordinate=exit_coordinate, 
-                                            type=0, 
-                                            param1=0, 
-                                            param2=0, 
-                                            param3=0, 
-                                            param4=0
-        )
+        # # Create the exit mission item
+        # exit_mission_item = Mission_Item(
+        #     seq=target_index + 3,
+        #     frame=3, 
+        #     command=16, 
+        #     current=0, 
+        #     auto_continue=1, 
+        #     coordinate=exit_coordinate, 
+        #     type=0, 
+        #     param1=0, 
+        #     param2=0, 
+        #     param3=0, 
+        #     param4=0
+        # )
         
         # Add the entry mission item to the mission
         result = self.airdrop_mission.add_mission_item(entry_mission_item)
         # verify that the mission item was added successfully
         if result:
+            if self.logger:
+                self.logger.critical(f"[Flight] Failed to append entry mission item, {result}")
             return result
+        if self.logger:
+            self.logger.info("[Flight] Appended entry mission item")
 
-        print("Appended entry mission item")
-        print(entry_mission_item)
+        # Add the drop script trigger to the mission
+        result = self.airdrop_mission.add_mission_item(drop_script_trigger)
+        # verify that the mission item was added successfully
+        if result:
+            if self.logger:
+                self.logger.critical(f"[Flight] Failed to append drop script trigger, {result}")
+            return result
+        if self.logger:
+            self.logger.info("[Flight] Appended drop script trigger")
 
         # Add the target mission item to the mission
         result = self.airdrop_mission.add_mission_item(target_mission_item)
         # verify that the mission item was added successfully
         if result:
+            if self.logger:
+                self.logger.critical(f"Failed to append target mission item, {result}")
             return result
+        if self.logger:
+            self.logger.info("[Flight] Appended target mission item")
         
-        print("Appended target mission item")
-        print(target_mission_item)
+        # # Add the exit mission item to the mission
+        # result = self.airdrop_mission.add_mission_item(exit_mission_item)
+        # # verify that the mission item was added successfully
+        # if result:
+        #     if self.logger:
+        #         self.logger.critical(f"[Flight] Failed to append exit mission item, {result}")
+        #     return result
         
-        # Add the exit mission item to the mission
-        result = self.airdrop_mission.add_mission_item(exit_mission_item)
-        # verify that the mission item was added successfully
-        if result:
-            return result
-        
-        print("Appended exit mission item")
-        print(exit_mission_item)
+        # if self.logger:
+        #     self.logger.info("[Flight] Appended exit mission item")
 
         # Load the rest of the mission from the file, don't overwrite the existing mission items
         result = self.airdrop_mission.load_mission_from_file(airdrop_mission_file, start=target_index, first_seq=target_index + 3, overwrite=False)
         # verify that the mission was loaded successfully
         if result:
+            if self.logger:
+                self.logger.critical(f"[Flight] Failed to load airdrop mission from file, {result}")
             return result
+        if self.logger:
+            self.logger.info(f"[Flight] Airdrop mission built successfully with {len(self.airdrop_mission)} items")
+            self.logger.info(f"[Flight] Airdrop mission:\n{self.airdrop_mission}")
         
+
         return 0
     
-    # DEPRECATED just use append_mission
+
     def append_airdrop_mission(self):
         '''
             Append the airdrop mission to the mission list.
         '''
         # Check if the airdrop mission is empty
-        if self.airdrop_mission.get_length() == 0:
+        if len(self.airdrop_mission) == 0:
+            if self.logger:
+                self.logger.critical("[Flight] Airdrop mission not built, cannot append to mission list")
             return self.AIRDROP_NOT_BUILT_ERROR
 
         self.mission_list.append(self.airdrop_mission)
@@ -594,8 +627,6 @@ class Flight(Controller):
         
         return response
         
-
-
 
 
     

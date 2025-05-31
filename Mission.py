@@ -43,7 +43,7 @@ class Mission:
     def __str__(self):
         output = ''
         for mission_item in self.mission_items:
-            output += f'{mission_item}\n'
+            output += f'{mission_item.seq}\t{mission_item.current}\t{mission_item.frame}\t{mission_item.command}\t{mission_item.param1}\t{mission_item.param2}\t{mission_item.param3}\t{mission_item.param4}\t{mission_item.x}\t{mission_item.y}\t{mission_item.z}\t{mission_item.auto_continue}\n'
 
         return output
     
@@ -114,6 +114,7 @@ class Mission:
         else:
             lines = lines[start + 1:end + 1]
 
+        count = 0
         for line in lines:
             # skip empty lines
             if line == '\n':
@@ -143,9 +144,10 @@ class Mission:
             item_coordinate = Coordinate(x, y, z)
             mission_item = Mission_Item(seq, frame, command, current, auto_continue, item_coordinate, self.type, param1, param2, param3, param4)
             self.mission_items.append(mission_item)
+            count += 1
         
         if self.controller.logger:
-            self.controller.logger.info(f"[Mission] Loaded {len(self.mission_items)} mission items from {filename}")
+            self.controller.logger.info(f"[Mission] Loaded {count} mission items from {filename}")
         return 0
 
 
