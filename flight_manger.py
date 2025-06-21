@@ -42,7 +42,7 @@ class Flight(Controller):
             Initialize the flight manager.
         '''
         # Initialize the controller
-        super().__init__(connection_string, logger)
+        super().__init__(connection_string, logger=logger)
 
         # initialize preflight check
         self.preflight_check_done = False
