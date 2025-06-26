@@ -55,7 +55,7 @@ class Flight(Controller):
         self.geofence = Mission(self, type=1) # type 1 is geofence
 
         # initialize mission list
-        self.mission_list = [self.detect_mission] # TODO: takeoff mission
+        self.mission_list = [self.takeoff_mission] # TODO: takeoff mission
 
 
     def decode_error(self, error_code):
@@ -133,7 +133,7 @@ class Flight(Controller):
         return 0
         
 
-    def build_airdrop_mission(self, target_coordinate, airdrop_mission_file, target_index, altitude, drop_count, heading, buffer_distance=100):
+    def build_airdrop_mission(self, target_coordinate, airdrop_mission_file, target_index, altitude, drop_count):
         '''
             Build the airdrop mission.
             target_coordinate: Coordinate
@@ -155,28 +155,28 @@ class Flight(Controller):
         target_coordinate.alt = altitude
 
         # calculate the buffer coordinates
-        entry_coordinate = target_coordinate.offset_coordinate(buffer_distance, heading + 180) # entry point is opposite of target
-        exit_coordinate = target_coordinate.offset_coordinate(buffer_distance, heading)
+        # entry_coordinate = target_coordinate.offset_coordinate(buffer_distance, heading + 180) # entry point is opposite of target
+        # exit_coordinate = target_coordinate.offset_coordinate(buffer_distance, heading)
 
-        # Create the entry mission item
-        entry_mission_item = Mission_Item(
-            seq=target_index,
-            frame=3, 
-            command=16, 
-            current=0, 
-            auto_continue=1, 
-            coordinate=entry_coordinate, 
-            type=0, 
-            param1=0, 
-            param2=0, 
-            param3=0, 
-            param4=0
-        )
+        # # Create the entry mission item
+        # entry_mission_item = Mission_Item(
+        #     seq=target_index,
+        #     frame=3, 
+        #     command=16, 
+        #     current=0, 
+        #     auto_continue=1, 
+        #     coordinate=entry_coordinate, 
+        #     type=0, 
+        #     param1=0, 
+        #     param2=0, 
+        #     param3=0, 
+        #     param4=0
+        # )
 
 
         # Create drop script trigger
         drop_script_trigger = Mission_Item(
-            seq=target_index + 1,
+            seq=target_index,
             frame=3, 
             command=217,  # MAV_CMD_DO_SEND_SCRIPT_MESSAGE
             current=0, 
@@ -184,14 +184,14 @@ class Flight(Controller):
             coordinate=Coordinate(0, 0, 0),  # unused coordinate
             type=0, 
             param1=17491,  # MAVLink message ID for the script message
-            param2=drop_count + 1,  # number of drops
+            param2=drop_count % 2 + 1,  # 1 for even drop, 2 for odd drop (0 indexed)
             param3=0,  # unused
             param4=0   # unused
         )
 
         # Create the target mission item
         target_mission_item = Mission_Item(
-            seq=target_index + 2,
+            seq=target_index + 1,
             frame=3,
             command=16,
             current=0, 
@@ -220,14 +220,14 @@ class Flight(Controller):
         # )
         
         # Add the entry mission item to the mission
-        result = self.airdrop_mission.add_mission_item(entry_mission_item)
-        # verify that the mission item was added successfully
-        if result:
-            if self.logger:
-                self.logger.critical(f"[Flight] Failed to append entry mission item, {result}")
-            return result
-        if self.logger:
-            self.logger.info("[Flight] Appended entry mission item")
+        # result = self.airdrop_mission.add_mission_item(entry_mission_item)
+        # # verify that the mission item was added successfully
+        # if result:
+        #     if self.logger:
+        #         self.logger.critical(f"[Flight] Failed to append entry mission item, {result}")
+        #     return result
+        # if self.logger:
+        #     self.logger.info("[Flight] Appended entry mission item")
 
         # Add the drop script trigger to the mission
         result = self.airdrop_mission.add_mission_item(drop_script_trigger)
@@ -261,7 +261,7 @@ class Flight(Controller):
         #     self.logger.info("[Flight] Appended exit mission item")
 
         # Load the rest of the mission from the file, don't overwrite the existing mission items
-        result = self.airdrop_mission.load_mission_from_file(airdrop_mission_file, start=target_index, first_seq=target_index + 3, overwrite=False)
+        result = self.airdrop_mission.load_mission_from_file(airdrop_mission_file, start=target_index, first_seq=target_index + 2, overwrite=False)
         # verify that the mission was loaded successfully
         if result:
             if self.logger:
@@ -335,7 +335,7 @@ class Flight(Controller):
         self.mission_list.append(mission)
 
 
-    def wait_for_waypoint_reached(self, target, timeout=10):
+    def wait_for_waypoint_reached(self, target, timeout=30):
         '''
             Wait for the drone to reach the current waypoint.
             timeout: int
@@ -392,7 +392,7 @@ class Flight(Controller):
         target_index = len(current_mission) - 1
 
         # Wait for the target index to be reached
-        response = self.wait_for_waypoint_reached(target_index, 30)
+        response = self.wait_for_waypoint_reached(target_index, 60)
 
         # verify that the response was received
         if response == self.TIMEOUT_ERROR:
@@ -428,7 +428,7 @@ class Flight(Controller):
         return result
     
     
-    def wait_for_landed(self, timeout=30):
+    def wait_for_landed(self, timeout=60):
         '''
             Wait for the drone to land.
             returns:

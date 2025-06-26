@@ -119,9 +119,12 @@ class Mission:
             # skip empty lines
             if line == '\n':
                 continue
-
+            # remove comments
+            line = line.split('#')[0].strip()
             parts = line.strip().split('\t')
-            
+            # skip empty lines
+            if not parts:
+                continue
             # jump seq ahead if first_seq is not -1
             if first_seq != -1: 
                 seq = first_seq

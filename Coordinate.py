@@ -12,6 +12,8 @@ and offset the coordinate by a given distance and heading.
 import math
 
 EARTH_RADIUS = 6378137  # in meters
+METERS_PER_DEGREE = EARTH_RADIUS / 180 * math.pi
+
 
 class Coordinate:
 
@@ -81,8 +83,8 @@ class Coordinate:
         lon_offset = offset * math.sin(heading)
 
         # convert the offset to degrees
-        lat_offset = (lat_offset / 111320)
-        lon_offset = (lon_offset / (111320 * math.cos(lat / 10e6)))
+        lat_offset = lat_offset / METERS_PER_DEGREE
+        lon_offset = (lon_offset / (METERS_PER_DEGREE * math.cos(math.radians(lat))))
 
         # calculate the new latitude and longitude
         new_lat = lat + lat_offset
@@ -174,8 +176,8 @@ class Coordinate:
     
 
 def main():
-    coord1 = Coordinate(37.7749, -122.4194, 0, use_int=True)
-    coord2 = Coordinate(34.0522, -118.2437, 0, use_int=True)
+    coord1 = Coordinate(66.89385443172026, -76.78424318420174, 0, use_int=False)
+    coord2 = Coordinate(66.2309403532884, -27.91781649984909, 0, use_int=False)
 
     print(f"Distance: {coord1.distance_to(coord2)} meters")
     print(f"Bearing: {coord1.bearing_to(coord2)} degrees")
