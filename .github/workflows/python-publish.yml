@@ -8,6 +8,7 @@ jobs:
   bump-version-and-publish:
     name: Update version and publish to PyPI
     runs-on: ubuntu-latest
+    environment: PyPi
 
     steps:
       - name: Checkout code
