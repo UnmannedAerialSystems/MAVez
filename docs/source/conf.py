@@ -11,7 +11,7 @@ import sys
 project = "MAVez"
 copyright = "2025, The Pennsylvania State University Unmanned Aerial Systems Club"
 author = "The Pennsylvania State University Unmanned Aerial Systems Club"
-version = "1.0.0"
+version = "1.0.1"
 release = "1.0"
 
 # -- General configuration ---------------------------------------------------
