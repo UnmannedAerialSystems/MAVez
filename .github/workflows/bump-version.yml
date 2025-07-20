@@ -1,38 +1,61 @@
-name: Bump version files on tag push
+name: Bump Version on Tag
 
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 jobs:
   bump-version:
-    name: Update version files
     runs-on: ubuntu-latest
     permissions:
-      contents: write 
+      contents: write
+      pull-requests: write
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Extract version from tag
-        id: tag
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
-      - name: Update pyproject.toml and conf.py
-        run: |
-          VERSION=${{ steps.tag.outputs.VERSION }}
-          echo "🔧 Setting version to $VERSION"
-          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" pyproject.toml
-          sed -i "s/^release = \".*\"/release = \"$VERSION\"/" docs/source/conf.py
-          sed -i "s/^version = \".*\"/version = \"${VERSION%.*}\"/" docs/source/conf.py
-
-      - name: Commit and push version updates
+      - name: Set up Git
         run: |
           git config user.name "github-actions"
-          git config user.email "github-actions@users.noreply.github.com"
-          git commit -am "Auto bump version files to ${{ steps.tag.outputs.VERSION }}"
-          git push origin HEAD:main
+          git config user.email "github-actions@github.com"
+
+      - name: Extract version from tag
+        id: extract_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_ENV"
+
+      - name: Bump version in pyproject.toml and conf.py
+        run: |
+          sed -i "s/version = \".*\"/version = \"${VERSION}\"/" pyproject.toml
+          sed -i "s/release = \".*\"/release = \"${VERSION}\"/" docs/conf.py
+
+      - name: Commit changes
+        run: |
+          git checkout -b version-bump-v${VERSION}
+          git commit -am "Auto bump version files to ${VERSION}"
+          git push origin version-bump-v${VERSION}
+
+      - name: Create PR
+        id: create_pr
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: "Bump version to v${{ env.VERSION }}"
+          body: "Automated version bump for tag `${{ github.ref_name }}`."
+          branch: version-bump-v${{ env.VERSION }}
+          base: main
+          draft: false
+          delete-branch: true
+
+      - name: Auto approve
+        uses: hmarr/auto-approve-action@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable auto-merge
+        uses: peter-evans/enable-pull-request-automerge@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ steps.create_pr.outputs.pull-request-number }}
+          merge-method: squash
