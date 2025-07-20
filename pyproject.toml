@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name='MAVez',
+version='1.0.0',    
+description='An intuitive MAVLink library for ArduPilot via pymavlink',
+author='The Pennsylvania State University Unmanned Aerial Systems Club',
+author_email='psuuasofficial@gmail.com',
+license='GNU General Public License v3 (GPLv3)',
+readme='README.md',
+dependencies=['pymavlink>=2.4.0', 'math', 'time'],
+classifiers=[
+    'Development Status :: 4 - Beta',
+    'Intended Audience :: Developers',
+    'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+    'Programming Language :: Python :: 3',
+    'Topic :: Scientific/Engineering',
+    'Operating System :: OS Independent',
+    'Natural Language :: English',
+],
+keywords=['MAVLink', 'ArduPilot', 'UAS', 'Drone', 'pymavlink', 'MAVez'],
+
+[project.urls]
+Homepage = 'https://github.com/UnmannedAerialSystems/MAVez'
