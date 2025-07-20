@@ -36,8 +36,8 @@ jobs:
           sed -i "s/^version = \".*\"/version = \"$VERSION\"/" pyproject.toml
 
           # Update Sphinx docs/conf.py (or wherever your conf.py is)
-          sed -i "s/^release = \".*\"/release = \"$VERSION\"/" docs/conf.py
-          sed -i "s/^version = \".*\"/version = \"${VERSION%.*}\"/" docs/conf.py  # Major.minor
+          sed -i "s/^release = \".*\"/release = \"$VERSION\"/" docs/source/conf.py
+          sed -i "s/^version = \".*\"/version = \"${VERSION%.*}\"/" docs/source/conf.py  # Major.minor
 
       - name: Commit version updates
         run: |
