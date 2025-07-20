@@ -1,0 +1,53 @@
+MAVez package
+=============
+
+Submodules
+----------
+
+MAVez.controller module
+-----------------------
+
+.. automodule:: MAVez.controller
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+MAVez.coordinate module
+-----------------------
+
+.. automodule:: MAVez.coordinate
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+MAVez.flight\_controller module
+-------------------------------
+
+.. automodule:: MAVez.flight_controller
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+MAVez.mission module
+--------------------
+
+.. automodule:: MAVez.mission
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+MAVez.mission\_item module
+--------------------------
+
+.. automodule:: MAVez.mission_item
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Module contents
+---------------
+
+.. automodule:: MAVez
+   :members:
+   :show-inheritance:
+   :undoc-members:
