@@ -27,8 +27,8 @@ jobs:
           VERSION=${{ steps.tag.outputs.VERSION }}
           echo "🔧 Setting version to $VERSION"
           sed -i "s/^version = \".*\"/version = \"$VERSION\"/" pyproject.toml
-          sed -i "s/^release = \".*\"/release = \"$VERSION\"/" docs/conf.py
-          sed -i "s/^version = \".*\"/version = \"${VERSION%.*}\"/" docs/conf.py
+          sed -i "s/^release = \".*\"/release = \"$VERSION\"/" docs/source/conf.py
+          sed -i "s/^version = \".*\"/version = \"${VERSION%.*}\"/" docs/source/conf.py
 
       - name: Commit and push version updates
         run: |
