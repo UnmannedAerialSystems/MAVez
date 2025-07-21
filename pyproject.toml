@@ -11,7 +11,7 @@ authors=[
 ]
 license='GPL-3.0'
 readme='README.md'
-dependencies=['pymavlink>=2.4.0', 'math', 'time']
+dependencies=['pymavlink>=2.4.0']
 classifiers=[
     'Development Status :: 4 - Beta',
     'Intended Audience :: Developers',
@@ -21,6 +21,14 @@ classifiers=[
     'Natural Language :: English',
 ]
 keywords=['MAVLink', 'ArduPilot', 'UAS', 'Drone', 'pymavlink', 'MAVez']
+
+[project.optional-dependencies]
+docs = [
+    "sphinx>=4.0.0",
+    "furo",
+    "sphinx-autodoc-typehints",
+    "pymavlink>=2.4.0"
+]
 
 [project.urls]
 Homepage = 'https://github.com/UnmannedAerialSystems/MAVez'

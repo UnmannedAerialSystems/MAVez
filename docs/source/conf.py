@@ -34,3 +34,11 @@ html_static_path = ["_static"]
 
 # Set the path to the source code directory
 sys.path.insert(0, os.path.abspath("../../src"))
+
+# -- Autodoc configuration --------------------------------------------------
+autodoc_mock_imports = ["pymavlink"]
+autodoc_default_options = {
+    'members': True,
+    'undoc-members': True,
+    'show-inheritance': True,
+}
