@@ -1,7 +1,0 @@
-MAVez
-=====
-
-.. toctree::
-   :maxdepth: 4
-
-   MAVez
