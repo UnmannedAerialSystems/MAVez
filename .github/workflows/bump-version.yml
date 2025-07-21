@@ -27,9 +27,10 @@ jobs:
 
       - name: Bump version in pyproject.toml and conf.py
         run: |
-          sed -i "s/version = \".*\"/version = \"${VERSION}\"/" pyproject.toml
-          sed -i "s/release = \".*\"/release = \"${VERSION}\"/" docs/conf.py
-
+          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" pyproject.toml
+          sed -i "s/^release = \".*\"/release = \"$VERSION\"/" docs/source/conf.py
+          sed -i "s/^version = \".*\"/version = \"${VERSION%.*}\"/" docs/source/conf.py
+      
       - name: Commit changes
         run: |
           git checkout -b version-bump-v${VERSION}
