@@ -25,6 +25,9 @@ jobs:
         id: extract_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_ENV"
 
+      - name: Create and switch to new branch
+        run: git checkout -b version-bump-v${VERSION}
+
       - name: Bump version in pyproject.toml and conf.py
         run: |
           sed -i "s/^version = \".*\"/version = \"$VERSION\"/" pyproject.toml
