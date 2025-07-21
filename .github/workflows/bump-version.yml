@@ -36,7 +36,6 @@ jobs:
       
       - name: Commit changes
         run: |
-          git checkout -b version-bump-v${VERSION}
           git commit -am "Auto bump version files to ${VERSION}"
           git push origin version-bump-v${VERSION}
 
