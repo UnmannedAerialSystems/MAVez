@@ -46,6 +46,7 @@ jobs:
         uses: hmarr/auto-approve-action@v3
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ steps.create_pr.outputs.pull-request-number }}
 
       - name: Enable auto-merge
         uses: peter-evans/enable-pull-request-automerge@v3
