@@ -8,7 +8,7 @@ jobs:
   publish:
     name: Publish to PyPI
     runs-on: ubuntu-latest
-    environment: PyPi
+    environment: pypi
 
     steps:
       - name: Checkout code
@@ -29,7 +29,7 @@ jobs:
       - name: Build the package
         run: python -m build
 
-      - name: Publish to PyPI
+      - name: Publish to PyPi
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
