@@ -6,3 +6,4 @@ mav.tlog.raw
 /terrain
 way.txt
 /__pycache__
+/src/mavez/__pycache__
