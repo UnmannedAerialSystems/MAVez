@@ -26,8 +26,14 @@ jobs:
           pip install --upgrade pip
           pip install build twine
 
+      - name: Clean old builds
+        run: rm -rf dist/
+
       - name: Build the package
         run: python -m build
+
+      - name: List dist files
+        run: ls -l dist/
 
       - name: Publish to PyPi
         env:
