@@ -1,7 +1,8 @@
 # flight_controller.py
-# version: 1.0.1
+# version: 2.0.0
 # Original Author: Theodore Tasman
-# Date: 2025-01-30
+# Creation Date: 2025-01-30
+# Last Modified: 2025-09-15
 # Organization: PSU UAS
 
 """
@@ -11,6 +12,7 @@ This module is responsible for managing the flight of ardupilot.
 # SITL Start Command:
 # python3 ./MAVLink/ardupilot/Tools/autotest/sim_vehicle.py -v ArduPlane --console --map --custom-location 38.31527628,-76.54908330,40,282.5
 
+from logging import Logger
 from MAVez.coordinate import Coordinate
 from MAVez.mission import Mission
 from MAVez.controller import Controller
@@ -24,6 +26,7 @@ class Flight_Controller(Controller):
     Args:
         connection_string (str): The connection string to ardupilot.
         logger (Logger | None): Optional logger for logging flight events.
+        craft_type (str): The type of craft ("plane" or "copter").
 
     Raises:
         ConnectionError: If the connection to ardupilot fails.
@@ -32,28 +35,24 @@ class Flight_Controller(Controller):
         Flight_Controller: An instance of the Flight_Controller class.
     """
 
-    PREFLIGHT_CHECK_ERROR = 301
-    DETECT_LOAD_ERROR = 302
-    AIRDROP_NOT_BUILT_ERROR = 303
+    TIMEOUT_ERROR = 101  # Timeout error code
+    UNKNOWN_MODE_ERROR = 111  # Unknown mode error code
+    INVALID_MISSION_ERROR = 301  # Invalid mission error code
 
-    def __init__(self, connection_string="tcp:127.0.0.1:5762", logger=None):
+    from typing import Literal
+
+    def __init__(self, connection_string: str="tcp:127.0.0.1:5762", logger: Logger|None=None, craft_type: Literal["plane", "copter"]="plane"):
         # Initialize the controller
         super().__init__(connection_string, logger=logger)
 
-        # initialize preflight check
-        self.preflight_check_done = False
-
-        # create missions
-        self.takeoff_mission = Mission(self)
-        self.detect_mission = Mission(self)
-        self.land_mission = Mission(self)
-        self.airdrop_mission = Mission(self)
         self.geofence = Mission(self, type=1)  # type 1 is geofence
 
-        # initialize mission list
-        self.mission_list = [self.takeoff_mission]  # TODO: takeoff mission
+        # initialize mission queue
+        self.mission_queue = []
 
-    def decode_error(self, error_code):
+        self.craft_type = craft_type
+
+    def decode_error(self, error_code: int) -> str:
         """
         Decode an error code.
 
@@ -67,29 +66,25 @@ class Flight_Controller(Controller):
         errors_dict = {
             101: "\nTIMEOUT ERROR (101)\n",
             111: "\nUNKNOWN MODE ERROR (102)\n",
-            301: "\nPREFLIGHT CHECK ERROR (301)\n",
-            302: "\nDETECT LOAD ERROR (302)\n",
+            301: "\nINVALID MISSION ERROR (301)\n",
         }
 
         return errors_dict.get(error_code, f"UNKNOWN ERROR ({error_code})")
 
-    def takeoff(self, takeoff_mission_file):
+    def takeoff(self, takeoff_mission_filename: str) -> int:
         """
-        Takeoff ardupilot. Preflight check must be done first.
+        Takeoff ardupilot.
 
         Args:
-            takeoff_mission_file (str): The file containing the takeoff mission.
+            takeoff_mission_filename (str): The file containing the takeoff mission.
 
         Returns:
             int: 0 if the takeoff was successful, otherwise an error code.
         """
 
-        # verify preflight check
-        if not self.preflight_check_done:
-            return self.PREFLIGHT_CHECK_ERROR
-
         # Load the takeoff mission from the file
-        response = self.takeoff_mission.load_mission_from_file(takeoff_mission_file)
+        takeoff_mission = Mission(self)
+        response = takeoff_mission.load_mission_from_file(takeoff_mission_filename)
 
         # verify that the mission was loaded successfully
         if response:
@@ -97,8 +92,15 @@ class Flight_Controller(Controller):
                 self.logger.critical("[Flight] Takeoff failed, mission not loaded")
             return response
 
+        # verify that the mission is a takeoff mission
+        if not takeoff_mission.is_takeoff:
+            if self.logger:
+                self.logger.critical("[Flight] Takeoff failed, not a takeoff mission")
+            return self.INVALID_MISSION_ERROR
+        
+
         # send the takeoff mission
-        response = self.takeoff_mission.send_mission()
+        response = takeoff_mission.send_mission()
 
         # verify that the mission was sent successfully
         if response:
@@ -156,7 +158,7 @@ class Flight_Controller(Controller):
             self.logger.info(
                 f"[Flight] Appended mission from {filename} to mission list"
             )
-        self.mission_list.append(mission)
+        self.mission_queue.append(mission)
         return 0
 
     def wait_for_waypoint_reached(self, target, timeout=30):
@@ -195,10 +197,10 @@ class Flight_Controller(Controller):
             int: 0 if the next mission was sent successfully, otherwise an error code.
         """
         # Get the current mission
-        current_mission = self.mission_list.pop(0)
+        current_mission = self.mission_queue.pop(0)
 
         # if the mission list is empty, return
-        if len(self.mission_list) == 0:
+        if len(self.mission_queue) == 0:
             if self.logger:
                 self.logger.info("[Flight] No more missions in list, landing")
             # next_mission = self.land_mission
@@ -208,9 +210,9 @@ class Flight_Controller(Controller):
         else:
             if self.logger:
                 self.logger.info(
-                    f"[Flight] Queuing next mission in list of {len(self.mission_list)} missions"
+                    f"[Flight] Queuing next mission in list of {len(self.mission_queue)} missions"
                 )
-            next_mission = self.mission_list[0]
+            next_mission = self.mission_queue[0]
 
         # calculate the target index
         target_index = len(current_mission) - 1
