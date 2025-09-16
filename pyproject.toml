@@ -4,14 +4,17 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name='MAVez'
-version='2.0.0'
+version='2.0.1'
 description='An intuitive MAVLink library for ArduPilot via pymavlink'
 authors=[
     {name='The Pennsylvania State University Unmanned Aerial Systems Club', email='psuuasofficial@gmail.com'}
 ]
 license='GPL-3.0'
 readme='README.md'
-dependencies=['pymavlink>=2.4.0']
+dependencies=[
+    'pymavlink>=2.4.0',
+    'pyparsing'
+]
 classifiers=[
     'Development Status :: 4 - Beta',
     'Intended Audience :: Developers',
@@ -27,8 +30,7 @@ docs = [
     "sphinx>=4.0.0",
     "furo",
     "sphinx-autodoc-typehints",
-    "pymavlink>=2.4.0",
-    "pyparsing"
+    "pymavlink>=2.4.0"
 ]
 
 [project.urls]
