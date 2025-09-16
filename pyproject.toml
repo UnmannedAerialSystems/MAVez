@@ -27,7 +27,8 @@ docs = [
     "sphinx>=4.0.0",
     "furo",
     "sphinx-autodoc-typehints",
-    "pymavlink>=2.4.0"
+    "pymavlink>=2.4.0",
+    "pyparsing"
 ]
 
 [project.urls]
