@@ -1,5 +1,5 @@
 # flight_controller.py
-# version: 2.0.0
+# version: 2.0.1
 # Original Author: Theodore Tasman
 # Creation Date: 2025-01-30
 # Last Modified: 2025-09-15
@@ -24,8 +24,9 @@ class FlightController(Controller):
 
     Args:
         connection_string (str): The connection string to ardupilot.
+        baud (int): The baud rate for the connection. Default is 57600.
         logger (Logger | None): Optional logger for logging flight events.
-        craft_type (str): The type of craft ("plane" or "copter").
+        craft_type (str): The type of craft ("plane" or "copter"). Default is "plane".
 
     Raises:
         ConnectionError: If the connection to ardupilot fails.
@@ -41,7 +42,7 @@ class FlightController(Controller):
 
     from typing import Literal
 
-    def __init__(self, connection_string: str="tcp:127.0.0.1:5762", logger: Logger|None=None, craft_type: Literal["plane", "copter"]="plane"):
+    def __init__(self, connection_string: str="tcp:127.0.0.1:5762", baud: int=57600, logger: Logger|None=None, craft_type: Literal["plane", "copter"]="plane"):
         # Initialize the controller
         super().__init__(connection_string, logger=logger)
 
