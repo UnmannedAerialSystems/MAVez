@@ -353,8 +353,8 @@
 <span id="mission-item"></span><h2>Mission Item<a class="headerlink" href="#module-MAVez.mission_item" title="Link to this heading">¶</a></h2>
 <p>An ardupilot mission item.</p>
 <dl class="py class">
-<dt class="sig sig-object py" id="MAVez.mission_item.Mission_Item">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">MAVez.mission_item.</span></span><span class="sig-name descname"><span class="pre">Mission_Item</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seq</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">command</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">auto_continue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coordinate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param3</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param4</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MAVez.mission_item.Mission_Item" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="MAVez.mission_item.MissionItem">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">MAVez.mission_item.</span></span><span class="sig-name descname"><span class="pre">MissionItem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seq</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">command</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">auto_continue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coordinate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param3</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param4</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MAVez.mission_item.MissionItem" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Represents a mission item for ardupilot.</p>
 <dl class="field-list simple">
@@ -377,12 +377,12 @@
 <dd class="field-even"><p>An instance of the Mission_Item class.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#MAVez.mission_item.Mission_Item" title="MAVez.mission_item.Mission_Item">Mission_Item</a></p>
+<dd class="field-odd"><p>Mission_Item</p>
 </dd>
 </dl>
 <dl class="py property">
-<dt class="sig sig-object py" id="MAVez.mission_item.Mission_Item.message">
-<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">message</span></span><a class="headerlink" href="#MAVez.mission_item.Mission_Item.message" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="MAVez.mission_item.MissionItem.message">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">message</span></span><a class="headerlink" href="#MAVez.mission_item.MissionItem.message" title="Link to this definition">¶</a></dt>
 <dd><p>The MAVLink message for the mission item.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -461,8 +461,8 @@
 <li><a class="reference internal" href="#flight-controller">Flight Controller</a></li>
 <li><a class="reference internal" href="#mission">Mission</a></li>
 <li><a class="reference internal" href="#module-MAVez.mission_item">Mission Item</a><ul>
-<li><a class="reference internal" href="#MAVez.mission_item.Mission_Item"><code class="docutils literal notranslate"><span class="pre">Mission_Item</span></code></a><ul>
-<li><a class="reference internal" href="#MAVez.mission_item.Mission_Item.message"><code class="docutils literal notranslate"><span class="pre">Mission_Item.message</span></code></a></li>
+<li><a class="reference internal" href="#MAVez.mission_item.MissionItem"><code class="docutils literal notranslate"><span class="pre">MissionItem</span></code></a><ul>
+<li><a class="reference internal" href="#MAVez.mission_item.MissionItem.message"><code class="docutils literal notranslate"><span class="pre">MissionItem.message</span></code></a></li>
 </ul>
 </li>
 </ul>
