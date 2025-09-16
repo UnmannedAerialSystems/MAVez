@@ -797,15 +797,16 @@
 <p>This module is responsible for managing the flight of ardupilot.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="MAVez.flight_controller.FlightController">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">MAVez.flight_controller.</span></span><span class="sig-name descname"><span class="pre">FlightController</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">connection_string</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'tcp:127.0.0.1:5762'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">craft_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'plane'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MAVez.flight_controller.FlightController" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">MAVez.flight_controller.</span></span><span class="sig-name descname"><span class="pre">FlightController</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">connection_string</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'tcp:127.0.0.1:5762'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">baud</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">57600</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">craft_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'plane'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MAVez.flight_controller.FlightController" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#MAVez.controller.Controller" title="MAVez.controller.Controller"><code class="xref py py-class docutils literal notranslate"><span class="pre">Controller</span></code></a></p>
 <p>Manages the flight plan for ardupilot. Extends the Controller class to provide complex flight functionalities.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>connection_string</strong> (<em>str</em>) – The connection string to ardupilot.</p></li>
+<li><p><strong>baud</strong> (<em>int</em>) – The baud rate for the connection. Default is 57600.</p></li>
 <li><p><strong>logger</strong> (<em>Logger</em><em> | </em><em>None</em>) – Optional logger for logging flight events.</p></li>
-<li><p><strong>craft_type</strong> (<em>str</em>) – The type of craft (“plane” or “copter”).</p></li>
+<li><p><strong>craft_type</strong> (<em>str</em>) – The type of craft (“plane” or “copter”). Default is “plane”.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
