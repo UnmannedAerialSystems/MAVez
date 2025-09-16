@@ -9,7 +9,7 @@
 An ardupilot mission.
 """
 
-from MAVez.mission_item import Mission_Item
+from MAVez.mission_item import MissionItem
 from MAVez.coordinate import Coordinate
 from MAVez.controller import Controller
 import time
@@ -37,7 +37,7 @@ class Mission:
     def __init__(self, controller: Controller, type: int=0):
         self.controller = controller
         self.type = type
-        self.mission_items: list[Mission_Item] = []
+        self.mission_items: list[MissionItem] = []
         self.has_takeoff = False
         self.has_landing = False
         self.is_geofence = self.type == 1
@@ -169,7 +169,7 @@ class Mission:
             auto_continue = int(parts[11])
 
             item_coordinate = Coordinate(x, y, z)
-            mission_item = Mission_Item(
+            mission_item = MissionItem(
                 seq,
                 frame,
                 command,
@@ -214,7 +214,7 @@ class Mission:
             )
         return 0
 
-    def add_mission_item(self, mission_item: Mission_Item) -> int:
+    def add_mission_item(self, mission_item: MissionItem) -> int:
         """
         Add a mission item to the mission.
 
