@@ -9,7 +9,7 @@
 A safe logger that only logs if the logger is properly initialized.
 """
 
-class Safe_Logger:
+class SafeLogger:
     """
     A safe logger that only logs if the logger is properly initialized.
 

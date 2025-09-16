@@ -13,7 +13,7 @@ from logging import Logger
 from pymavlink import mavutil
 from pyparsing import Any # type: ignore[import]
 from MAVez.coordinate import Coordinate
-from MAVez.safe_logger import Safe_Logger
+from MAVez.safe_logger import SafeLogger
 
 
 class Controller:
@@ -54,7 +54,7 @@ class Controller:
         Returns:
             None
         """
-        self.logger = Safe_Logger(logger)
+        self.logger = SafeLogger(logger)
 
         self.master = mavutil.mavlink_connection(connection_string, baud=baud)  # type: ignore
 

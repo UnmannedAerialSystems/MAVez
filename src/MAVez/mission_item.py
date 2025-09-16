@@ -14,7 +14,7 @@ from pymavlink import mavutil # type: ignore[import]
 from MAVez.coordinate import Coordinate
 
 
-class Mission_Item:
+class MissionItem:
     """
     Represents a mission item for ardupilot.
 

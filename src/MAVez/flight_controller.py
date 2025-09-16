@@ -18,7 +18,7 @@ from MAVez.controller import Controller
 import time
 
 
-class Flight_Controller(Controller):
+class FlightController(Controller):
     """
     Manages the flight plan for ardupilot. Extends the Controller class to provide complex flight functionalities.
 
