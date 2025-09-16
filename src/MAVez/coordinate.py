@@ -1,7 +1,8 @@
 # coordinate.py
-# version: 1.0.0
+# version: 1.1.0
 # Author: Theodore Tasman
-# Date: 2025-01-30
+# Creation Date: 2025-01-30
+# Last Modified: 2025-09-15
 # Organization: PSU UAS
 
 """
@@ -9,6 +10,7 @@ Represents a geographic coordinate with latitude, longitude, and altitude.
 """
 
 import math
+from typing import Tuple, Union
 
 EARTH_RADIUS = 6378137  # in meters
 METERS_PER_DEGREE = EARTH_RADIUS / 180 * math.pi
@@ -31,15 +33,10 @@ class Coordinate:
 
     """
 
-    def __init__(self, lat, lon, alt, dms=False, use_int=True, heading=None):
-        # if dms is True, convert the coordinates to decimal degrees
-        if dms:
-            self.lat = self.dms_to_dd(lat)
-            self.lon = self.dms_to_dd(lon)
-        # otherwise, use the coordinates as they are
-        else:
-            self.lat = lat
-            self.lon = lon
+    def __init__(self, lat: float | int, lon: float | int, alt: float | int, use_int: bool = True, heading: float | None = None):
+        
+        self.lat = lat
+        self.lon = lon
 
         # alt is always used as it is
         self.alt = alt
@@ -62,20 +59,7 @@ class Coordinate:
 
     __repr__ = __str__
 
-    def dms_to_dd(self, dms):
-        """
-        Convert degrees, minutes, seconds to decimal degrees.
-
-        Args:
-            dms (tuple): A tuple of (degrees, minutes, seconds).
-
-        Returns:
-            float: The decimal degrees equivalent of the DMS input.
-        """
-        dd = dms[0] + dms[1] / 60 + dms[2] / 3600
-        return dd
-
-    def offset_coordinate(self, offset, heading):
+    def offset_coordinate(self, offset: float | int, heading: float | int) -> "Coordinate":
         """
         Offset the coordinate by a given distance and heading.
 
@@ -106,14 +90,17 @@ class Coordinate:
 
         return Coordinate(new_lat, new_lon, self.alt, use_int=self.is_int)
 
-    def __eq__(self, other):
+    def __eq__(self, other: Union["Coordinate", Tuple[float, float, float]]) -> bool:  # type: ignore[override]
         if isinstance(other, tuple) and len(other) == 3:
-            # if other is a tuple, convert it to a Coordinate
-            other = Coordinate(other[0], other[1], other[2])
+            other = Coordinate(*other)
 
-        return self.lat == other.lat and self.lon == other.lon and self.alt == other.alt
+        return (
+            self.lat == other.lat
+            and self.lon == other.lon
+            and self.alt == other.alt
+        )
 
-    def normalize(self):
+    def normalize(self) -> Tuple[float, float]:
         """
         Normalize the coordinates to decimal degrees.
 
@@ -130,7 +117,7 @@ class Coordinate:
 
         return self_lat, self_lon
 
-    def distance_to(self, other):
+    def distance_to(self, other: "Coordinate") -> float:
         """
         Calculate the distance between two coordinates in meters using the haversine formula.
 
@@ -140,9 +127,6 @@ class Coordinate:
         Returns:
             float: The distance in meters between the two coordinates.
         """
-        # ensure other is a Coordinate
-        if not isinstance(other, Coordinate):
-            raise TypeError("other must be a Coordinate")
 
         self_lat, self_lon = self.normalize()
         other_lat, other_lon = other.normalize()
@@ -160,7 +144,7 @@ class Coordinate:
         distance = EARTH_RADIUS * c
         return distance
 
-    def bearing_to(self, other):
+    def bearing_to(self, other: "Coordinate") -> float:
         """
         Calculate the bearing between two coordinates in degrees.
 
@@ -170,9 +154,6 @@ class Coordinate:
         Returns:
             float: The bearing in degrees from self to other.
         """
-        # ensure other is a Coordinate
-        if not isinstance(other, Coordinate):
-            raise TypeError("other must be a Coordinate")
 
         self_lat, self_lon = self.normalize()
         other_lat, other_lon = other.normalize()

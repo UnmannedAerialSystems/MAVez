@@ -1,7 +1,8 @@
 # mission.py
-# version: 1.0.0
+# version: 1.1.0
 # Author: Theodore Tasman
-# Date: 2025-01-30
+# Creation Date: 2025-01-30
+# Last Modified: 2025-09-15
 # Organization: PSU UAS
 
 """
@@ -36,7 +37,7 @@ class Mission:
     def __init__(self, controller: Controller, type: int=0):
         self.controller = controller
         self.type = type
-        self.mission_items = []
+        self.mission_items: list[Mission_Item] = []
         self.has_takeoff = False
         self.has_landing = False
         self.is_geofence = self.type == 1
@@ -243,7 +244,7 @@ class Mission:
         start_time = time.time()
         while True:
             # await mission request
-            seq = self.controller.await_mission_request()
+            seq = self.controller.receive_mission_request()
 
             # verify seq is not an error
             if seq == self.controller.TIMEOUT_ERROR:
@@ -265,7 +266,7 @@ class Mission:
                 return self.TIMEOUT_ERROR
 
         # after sending all mission items, wait for mission acknowledgement
-        response = self.controller.await_mission_ack()  # returns 0 if successful
+        response = self.controller.receive_mission_ack()  # returns 0 if successful
         if response:
             return response  # propagate error code
 
@@ -287,7 +288,7 @@ class Mission:
         self.controller.send_clear_mission()
 
         # await mission ack confirming mission was cleared
-        response = self.controller.await_mission_ack()
+        response = self.controller.receive_mission_ack()
         if response:
             if self.controller.logger:
                 self.controller.logger.critical("[Mission] Could not clear mission.")

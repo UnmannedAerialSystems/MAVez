@@ -13,7 +13,6 @@ This module is responsible for managing the flight of ardupilot.
 # python3 ./MAVLink/ardupilot/Tools/autotest/sim_vehicle.py -v ArduPlane --console --map --custom-location 38.31527628,-76.54908330,40,282.5
 
 from logging import Logger
-from MAVez.coordinate import Coordinate
 from MAVez.mission import Mission
 from MAVez.controller import Controller
 import time
@@ -36,6 +35,7 @@ class Flight_Controller(Controller):
     """
 
     TIMEOUT_ERROR = 101  # Timeout error code
+    BAD_RESPONSE_ERROR = 102  # Bad response error code
     UNKNOWN_MODE_ERROR = 111  # Unknown mode error code
     INVALID_MISSION_ERROR = 301  # Invalid mission error code
 
@@ -65,7 +65,8 @@ class Flight_Controller(Controller):
 
         errors_dict = {
             101: "\nTIMEOUT ERROR (101)\n",
-            111: "\nUNKNOWN MODE ERROR (102)\n",
+            102: "\nBAD RESPONSE ERROR (102)\n",
+            111: "\nUNKNOWN MODE ERROR (111)\n",
             301: "\nINVALID MISSION ERROR (301)\n",
         }
 
@@ -135,7 +136,7 @@ class Flight_Controller(Controller):
 
         return 0
 
-    def append_mission(self, filename):
+    def append_mission(self, filename) -> int:
         """
         Append a mission to the mission list.
 
@@ -161,13 +162,12 @@ class Flight_Controller(Controller):
         self.mission_queue.append(mission)
         return 0
 
-    def wait_for_waypoint_reached(self, target, timeout=30):
+    def await_waypoint_reached(self, target) -> int:
         """
         Wait for ardupilot to reach the current waypoint.
 
         Args:
             target (int): The target waypoint index to wait for.
-            timeout (int): The maximum time to wait for the waypoint to be reached in seconds.
 
         Returns:
             int: 0 if the waypoint was reached successfully, otherwise an error code.
@@ -178,9 +178,9 @@ class Flight_Controller(Controller):
             self.logger.info(f"[Flight] Waiting for waypoint {target} to be reached")
 
         while latest_waypoint < target:
-            response = self.await_mission_item_reached(timeout)
+            response = self.receive_mission_item_reached()
 
-            if response == self.TIMEOUT_ERROR:
+            if response == self.TIMEOUT_ERROR or response == self.BAD_RESPONSE_ERROR:
                 return response
 
             latest_waypoint = response
@@ -189,7 +189,7 @@ class Flight_Controller(Controller):
             self.logger.info(f"[Flight] Waypoint {target} reached")
         return 0
 
-    def wait_and_send_next_mission(self):
+    def wait_and_send_next_mission(self) -> int:
         """
         Waits for the last waypoint to be reached, clears the mission, sends the next mission, sets mode to auto.
 
@@ -202,8 +202,7 @@ class Flight_Controller(Controller):
         # if the mission list is empty, return
         if len(self.mission_queue) == 0:
             if self.logger:
-                self.logger.info("[Flight] No more missions in list, landing")
-            # next_mission = self.land_mission
+                self.logger.info("[Flight] No more missions in list")
             return 0
 
         # otherwise, set the next mission to the next mission in the list
@@ -218,10 +217,10 @@ class Flight_Controller(Controller):
         target_index = len(current_mission) - 1
 
         # Wait for the target index to be reached
-        response = self.wait_for_waypoint_reached(target_index, 60)
+        response = self.await_waypoint_reached(target_index)
 
         # verify that the response was received
-        if response == self.TIMEOUT_ERROR:
+        if response == self.TIMEOUT_ERROR or response == self.BAD_RESPONSE_ERROR:
             if self.logger:
                 self.logger.critical("[Flight] Failed to wait for next mission.")
             return response
@@ -253,7 +252,7 @@ class Flight_Controller(Controller):
             self.logger.info("[Flight] Next mission sent")
         return result
 
-    def wait_for_landed(self, timeout=60):
+    def await_landing(self, timeout=60) -> int:
         """
         Wait for ardupilot to signal landed.
 
@@ -290,7 +289,7 @@ class Flight_Controller(Controller):
             response = self.receive_landing_status()
 
             # verify that the response was received
-            if response == self.TIMEOUT_ERROR:
+            if response == self.TIMEOUT_ERROR or response == self.BAD_RESPONSE_ERROR:
                 if self.logger:
                     self.logger.error("[Flight] Failed waiting for landing.")
                 return response
@@ -308,84 +307,7 @@ class Flight_Controller(Controller):
 
         return 0
 
-    def preflight_check(
-        self, land_mission_file, geofence_file, home_coordinate=Coordinate(0, 0, 0)
-    ):
-        """
-        Perform a preflight check. On success, set preflight_check_done to True. Loads the land mission and geofence mission, sets home location, and enables geofence.
-
-        Args:
-            land_mission_file (str): Path to the file containing the land mission.
-            geofence_file (str): Path to the file containing the geofence mission.
-            home_coordinate (Coordinate): The home coordinate to set (optional).
-
-        Returns:
-            int: 0 if the preflight check passed, otherwise an error code.
-        """
-
-        # Set home location
-        response = self.set_home(home_coordinate)
-
-        # verify that the home location was set successfully
-        if response:
-            if self.logger:
-                self.logger.critical(
-                    "[Flight] Preflight check failed, home location not set"
-                )
-            return response
-
-        # load geofence
-        response = self.geofence.load_mission_from_file(geofence_file)
-
-        # verify that the geofence was loaded successfully
-        if response:
-            if self.logger:
-                self.logger.critical(
-                    "[Flight] Preflight check failed, geofence not loaded"
-                )
-            return response
-
-        # send geofence
-        response = self.geofence.send_mission()
-
-        # verify that the geofence was sent successfully
-        if response:
-            if self.logger:
-                self.logger.critical(
-                    "[Flight] Preflight check failed, geofence not sent"
-                )
-            return response
-
-        # load land mission
-        response = self.land_mission.load_mission_from_file(land_mission_file)
-
-        # verify that the land mission was loaded successfully
-        if response:
-            if self.logger:
-                self.logger.critical(
-                    "[Flight] Preflight check failed, land mission not loaded"
-                )
-            return response
-
-        # enable geofence
-        response = self.enable_geofence()
-
-        # verify that the geofence was enabled successfully
-        if response:
-            if self.logger:
-                self.logger.critical(
-                    "[Flight] Preflight check failed, geofence not enabled"
-                )
-            return response
-
-        # set preflight check done
-        self.preflight_check_done = True
-
-        if self.logger:
-            self.logger.info("[Flight] Preflight check passed")
-        return 0
-
-    def jump_to_next_mission_item(self):
+    def jump_to_next_mission_item(self) -> int:
         """
         Jump to the next mission item.
 
@@ -396,7 +318,7 @@ class Flight_Controller(Controller):
         if self.logger:
             self.logger.info("[Flight] Waiting for current mission index")
         # wait for the current mission target to be received (should be broadcast by default)
-        response = self.await_current_mission_index()
+        response = self.receive_current_mission_index()
         if response == self.TIMEOUT_ERROR:
             return response
 
@@ -407,16 +329,15 @@ class Flight_Controller(Controller):
 
         return 0
 
-    def wait_for_channel_input(
-        self, channel, value, timeout=10, wait_time=120, value_tolerance=100
-    ):
+    def await_channel_input(
+        self, channel, value, wait_time=120, value_tolerance=100
+    ) -> int:
         """
         Wait for a specified rc channel to reach a given value
 
         Args:
             channel (int): The channel number to wait for.
             value (int): The value to wait for.
-            timeout (int): The maximum time to wait for an update on the channel in seconds.
             wait_time (int): The maximum time to wait for the channel to be set in seconds.
             value_tolerance (int): The tolerance range for the set value.
 
@@ -436,10 +357,10 @@ class Flight_Controller(Controller):
         # only wait for the channel to be set for a certain amount of time
         while time.time() - start_time < wait_time:
             # get channel inputs
-            response = self.receive_channel_input(timeout)
+            response = self.receive_channel_input()
 
             # verify that the response was received
-            if response == self.TIMEOUT_ERROR:
+            if response == self.TIMEOUT_ERROR or response == self.BAD_RESPONSE_ERROR:
                 if self.logger:
                     self.logger.critical("[Flight] Failed waiting for channel input.")
                 return response
@@ -464,24 +385,3 @@ class Flight_Controller(Controller):
                 f"[Flight] Timed out waiting for channel {channel} to be set to {value}"
             )
         return self.TIMEOUT_ERROR
-
-    def get_altitude(self):
-        """
-        Get the altitude from ardupilot.
-
-        Returns:
-            float: The altitude in meters if successful, otherwise an error code.
-        """
-        # get the altitude
-        if self.logger:
-            self.logger.info("[Flight] Getting altitude")
-
-        response = self.receive_altitude()
-
-        # verify that the response was received
-        if response == self.TIMEOUT_ERROR:
-            if self.logger:
-                self.logger.critical("[Flight] Failed to get altitude.")
-            return response
-
-        return response
