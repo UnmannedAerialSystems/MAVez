@@ -1,15 +1,17 @@
 # mission.py
-# version: 1.0.0
+# version: 1.1.0
 # Author: Theodore Tasman
-# Date: 2025-01-30
+# Creation Date: 2025-01-30
+# Last Modified: 2025-09-15
 # Organization: PSU UAS
 
 """
 An ardupilot mission.
 """
 
-from MAVez.mission_item import Mission_Item  # type: ignore
-from MAVez.coordinate import Coordinate  # type: ignore
+from MAVez.mission_item import Mission_Item
+from MAVez.coordinate import Coordinate
+from MAVez.controller import Controller
 import time
 
 
@@ -32,12 +34,15 @@ class Mission:
     # time to wait for mission to be sent
     MISSION_SEND_TIMEOUT = 20  # seconds
 
-    def __init__(self, controller, type=0):
+    def __init__(self, controller: Controller, type: int=0):
         self.controller = controller
         self.type = type
-        self.mission_items = []
+        self.mission_items: list[Mission_Item] = []
+        self.has_takeoff = False
+        self.has_landing = False
+        self.is_geofence = self.type == 1
 
-    def __str__(self):
+    def __str__(self) -> str:
         output = ""
         for mission_item in self.mission_items:
             output += f"{mission_item.seq}\t{mission_item.current}\t{mission_item.frame}\t{mission_item.command}\t{mission_item.param1}\t{mission_item.param2}\t{mission_item.param3}\t{mission_item.param4}\t{mission_item.x}\t{mission_item.y}\t{mission_item.z}\t{mission_item.auto_continue}\n"
@@ -46,7 +51,7 @@ class Mission:
 
     __repr__ = __str__
 
-    def decode_error(self, error_code):
+    def decode_error(self, error_code: int) -> str:
         """
         Decode an error code into a human-readable string.
 
@@ -66,7 +71,7 @@ class Mission:
         return error_codes.get(error_code, f"\nUNKNOWN ERROR ({error_code})\n")
 
     def load_mission_from_file(
-        self, filename, start=0, end=-1, first_seq=-1, overwrite=True
+        self, filename: str, start: int=0, end: int=-1, first_seq: int=-1, overwrite: bool=True
     ):
         """
         Load a QGC WPL 110 mission from a file. For details on the file format, see: https://mavlink.io/en/file_formats/
@@ -147,6 +152,13 @@ class Mission:
             current = int(parts[1])
             frame = int(parts[2])
             command = int(parts[3])
+
+            # set flags for special mission types
+            if command == 22:
+                self.is_takeoff = True
+            if command == 21:
+                self.is_landing = True
+
             param1 = float(parts[4])
             param2 = float(parts[5])
             param3 = float(parts[6])
@@ -179,7 +191,7 @@ class Mission:
             )
         return 0
 
-    def save_mission_to_file(self, filename):
+    def save_mission_to_file(self, filename: str) -> int:
         """
         Save the mission to a file in QGC WPL 110 format. For details on the file format, see: https://mavlink.io/en/file_formats/
 
@@ -202,7 +214,7 @@ class Mission:
             )
         return 0
 
-    def add_mission_item(self, mission_item):
+    def add_mission_item(self, mission_item: Mission_Item) -> int:
         """
         Add a mission item to the mission.
 
@@ -217,7 +229,7 @@ class Mission:
 
         return 0
 
-    def send_mission(self):
+    def send_mission(self) -> int:
         """
         Send the mission to ardupilot.
 
@@ -232,7 +244,7 @@ class Mission:
         start_time = time.time()
         while True:
             # await mission request
-            seq = self.controller.await_mission_request()
+            seq = self.controller.receive_mission_request()
 
             # verify seq is not an error
             if seq == self.controller.TIMEOUT_ERROR:
@@ -254,7 +266,7 @@ class Mission:
                 return self.TIMEOUT_ERROR
 
         # after sending all mission items, wait for mission acknowledgement
-        response = self.controller.await_mission_ack()  # returns 0 if successful
+        response = self.controller.receive_mission_ack()  # returns 0 if successful
         if response:
             return response  # propagate error code
 
@@ -265,7 +277,7 @@ class Mission:
 
         return 0
 
-    def clear_mission(self):
+    def clear_mission(self) -> int:
         """
         Clear the mission from the drone.
 
@@ -276,7 +288,7 @@ class Mission:
         self.controller.send_clear_mission()
 
         # await mission ack confirming mission was cleared
-        response = self.controller.await_mission_ack()
+        response = self.controller.receive_mission_ack()
         if response:
             if self.controller.logger:
                 self.controller.logger.critical("[Mission] Could not clear mission.")

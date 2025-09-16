@@ -1,14 +1,17 @@
 # mission_item.py
-# version: 1.0.0
+# version: 1.0.1
 # Author: Theodore Tasman
-# Date: 2025-01-30
+# Creation Date: 2025-01-30
+# Last Modified: 2025-09-15
 # Organization: PSU UAS
 
 """
 An ardupilot mission item.
 """
 
-from pymavlink import mavutil
+from pymavlink import mavutil # type: ignore[import]
+
+from MAVez.coordinate import Coordinate
 
 
 class Mission_Item:
@@ -34,17 +37,17 @@ class Mission_Item:
 
     def __init__(
         self,
-        seq,
-        frame,
-        command,
-        current,
-        auto_continue,
-        coordinate,
-        type=0,
-        param1=0,
-        param2=0,
-        param3=0,
-        param4=0,
+        seq: int,
+        frame: int,
+        command: int,
+        current: int,
+        auto_continue: int,
+        coordinate: Coordinate,
+        type: int = 0,
+        param1: float = 0,
+        param2: float = 0,
+        param3: float = 0,
+        param4: float = 0,
     ):
         self.seq = int(seq)
         self.frame = int(frame)
