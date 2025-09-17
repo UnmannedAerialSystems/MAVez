@@ -1,12 +1,7 @@
-import logging
 from MAVez import flight_controller
 from MAVez.safe_logger import configure_logging
 
-
-
-
 logger = configure_logging()
-
 
 controller = flight_controller.FlightController(connection_string='tcp:127.0.0.1:5762', baud=57600, logger=logger)
 

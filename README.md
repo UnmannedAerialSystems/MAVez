@@ -13,7 +13,6 @@ For detailed documentation on pymavlink, visit [mavlink.io](https://mavlink.io/e
 - [Installation](#installation)
 - [Example Usage](#example-usage)
 - [Module Overview](#module-overview)
-- [Error Codes](#error-codes)
 - [License](#license)
 - [Authors](#authors)
 
@@ -21,40 +20,42 @@ For detailed documentation on pymavlink, visit [mavlink.io](https://mavlink.io/e
 
 1. In a terminal window, run `git clone git@github.com:UnmannedAerialSystems/MAVez.git`
 2. Switch into the newly cloned directory by running `cd MAVez`
-3. Install the required dependencies by running `pip install -r requirements.txt`
-4. Create a python file in the parent directory of MAVez
+3. Install the package locally in editable mode `pip install -e .`
 
-```
-your_project/
-  ├── your_python_script.py
-  └── MAVez/
-```
-
-5. At the top of your file, import your desired modules with `from MAVez import Coordinate, flight_manager, ...`
-
-While not required, it is highly recommended that you set up [ArduPilot's Software in the Loop (SITL)](https://ardupilot.org/dev/docs/sitl-simulator-software-in-the-loop.html) simulator to make testing significantly easier.
+While not required, it is highly recommended that you utilize [ArduPilot's Software in the Loop (SITL)](https://ardupilot.org/dev/docs/sitl-simulator-software-in-the-loop.html) simulator to make testing significantly easier. [Install instructions](#sitl-installation) are provided for Windows and MacOS in the appendix. For Linux or WSL instructions, refer to the [ArduPilot setup page](https://ardupilot.org/dev/docs/SITL-setup-landingpage.html)
 
 ## Example Usage
 
-Below is a simple script designed to work with SITL, assuming the directory structure is as described in the installation.
+Below is a simple script designed to work with SITL
 
 ```Python
-from MAVez import flight_manager
+from MAVez import flight_controller
+from MAVez.safe_logger import configure_logging
 
-controller = flight_manager.Flight(connection_string='tcp:127.0.0.1:5762') # connection string for SITL
+logger = configure_logging()
 
-controller.prefight_check("sample_missions/landing_mission.txt", "sample_missions/geofence.txt") # unspecified home coordinate uses current
+controller = flight_controller.FlightController(connection_string='tcp:127.0.0.1:5762', baud=57600, logger=logger)
 
-controller.arm() # must arm before takeoff
+controller.set_geofence("./examples/sample_missions/sample_fence.txt")
 
-controller.takeoff(takeoff_mission.txt) # provide takeoff mission at time of takeoff
+controller.arm()
 
-controller.append_detect_mission("sample_missions/detect_mission.txt") # provide a detect mission
+controller.takeoff("./examples/sample_missions/sample1.txt")
 
-controller.wait_and_send_next_mission() # wait until takeoff completes, send detect mission
+controller.append_mission("./examples/sample_missions/sample2.txt")
+
+controller.append_mission("./examples/sample_missions/sample3.txt")
+
+controller.wait_and_send_next_mission()
+
+controller.wait_and_send_next_mission()
+
+controller.await_landing()
+
+controller.disarm()
 ```
 
-## LICENSE:
+## License:
 
 This project is licensed under the [GNU General Public License v3.0](LICENSE).
 
@@ -63,3 +64,45 @@ This project is licensed under the [GNU General Public License v3.0](LICENSE).
 [Ted Tasman](https://github.com/tedtasman)
 [Declan Emery](https://github.com/dec4234)
 [Vlad Roiban](https://github.com/Vladdapenn)
+
+## Appendix:
+
+### SITL Installation
+
+1. Install prerequisites:
+
+```bash
+brew install python3 gcc
+pip install future pymavlink MAVProxy opencv-python
+```
+
+2. Clone ArduPilot repository
+
+```bash
+git clone https://github.com/ArduPilot/ardupilot.git
+cd ardupilot
+git submodule update --init --recursive
+```
+
+3. Install environment
+
+```bash
+cd Tools/environment_install
+./install-prereqs-mac.sh  # decline all prompts
+```
+
+4. Compile the binaries
+
+Return to ./ardupilot
+
+```bash
+./waf configure --board sitl
+./waf copter
+./waf plane
+```
+
+5. Run SITL
+
+```bash
+./Tools/autotest/sim_vehicle.py -v ArduCopter --console --map
+```
