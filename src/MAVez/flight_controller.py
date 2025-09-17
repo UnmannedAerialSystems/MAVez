@@ -17,6 +17,8 @@ from MAVez.mission import Mission
 from MAVez.controller import Controller
 import time
 
+from MAVez.safe_logger import SafeLogger
+
 
 class FlightController(Controller):
     """
@@ -44,7 +46,7 @@ class FlightController(Controller):
 
     def __init__(self, connection_string: str="tcp:127.0.0.1:5762", baud: int=57600, logger: Logger|None=None, craft_type: Literal["plane", "copter"]="plane"):
         # Initialize the controller
-        super().__init__(connection_string, logger=logger)
+        super().__init__(connection_string, logger=logger, baud=baud)
 
         self.geofence = Mission(self, type=1)  # type 1 is geofence
 
@@ -88,33 +90,28 @@ class FlightController(Controller):
         takeoff_mission = Mission(self)
         response = takeoff_mission.load_mission_from_file(takeoff_mission_filename)
 
-        # verify that the mission was loaded successfully
         if response:
-            if self.logger:
-                self.logger.critical("[Flight] Takeoff failed, mission not loaded")
+            self.logger.critical("[Flight] Takeoff failed, could not load mission")
             return response
 
-        # verify that the mission is a takeoff mission
         if not takeoff_mission.is_takeoff:
-            if self.logger:
-                self.logger.critical("[Flight] Takeoff failed, not a takeoff mission")
+            self.logger.critical("[Flight] Takeoff failed, mission has no takeoff")
             return self.INVALID_MISSION_ERROR
-        
+
+        self.mission_queue.append(takeoff_mission)
 
         # send the takeoff mission
         response = takeoff_mission.send_mission()
 
         # verify that the mission was sent successfully
         if response:
-            if self.logger:
-                self.logger.critical("[Flight] Takeoff failed, mission not sent")
+            self.logger.critical("[Flight] Takeoff failed, mission not sent")
             return response
 
         # wait for mission to be fully received
         # Countdown from 5
-        if self.logger:
-            self.logger.info("[Flight] Takeoff in 5 seconds")
-        for i in range(5, 0, -1):
+        self.logger.info("[Flight] Takeoff in 5 seconds")
+        for _ in range(5, 0, -1):
             time.sleep(1)
 
         # set the mode to AUTO
@@ -122,8 +119,7 @@ class FlightController(Controller):
 
         # verify that the mode was set successfully
         if response:
-            if self.logger:
-                self.logger.critical("[Flight] Takeoff failed, mode not set to AUTO")
+            self.logger.critical("[Flight] Takeoff failed, mode not set to AUTO")
             return response
 
         # arm ardupilot
@@ -131,8 +127,7 @@ class FlightController(Controller):
 
         # verify that ardupilot was armed successfully
         if response:
-            if self.logger:
-                self.logger.critical("[Flight] Takeoff failed, drone not armed")
+            self.logger.critical("[Flight] Takeoff failed, vehicle not armed")
             return response
 
         return 0
@@ -152,14 +147,10 @@ class FlightController(Controller):
         result = mission.load_mission_from_file(filename)
 
         if result:
-            if self.logger:
-                self.logger.critical("[Flight] Could not append mission.")
+            self.logger.critical("[Flight] Could not append mission.")
             return result
 
-        if self.logger:
-            self.logger.info(
-                f"[Flight] Appended mission from {filename} to mission list"
-            )
+        self.logger.info(f"[Flight] Appended mission from {filename} to mission list")
         self.mission_queue.append(mission)
         return 0
 
@@ -175,8 +166,7 @@ class FlightController(Controller):
         """
         latest_waypoint = -1
 
-        if self.logger:
-            self.logger.info(f"[Flight] Waiting for waypoint {target} to be reached")
+        self.logger.info(f"[Flight] Waiting for waypoint {target} to be reached")
 
         while latest_waypoint < target:
             response = self.receive_mission_item_reached()
@@ -186,8 +176,7 @@ class FlightController(Controller):
 
             latest_waypoint = response
 
-        if self.logger:
-            self.logger.info(f"[Flight] Waypoint {target} reached")
+        self.logger.info(f"[Flight] Waypoint {target} reached")
         return 0
 
     def wait_and_send_next_mission(self) -> int:
@@ -202,16 +191,12 @@ class FlightController(Controller):
 
         # if the mission list is empty, return
         if len(self.mission_queue) == 0:
-            if self.logger:
-                self.logger.info("[Flight] No more missions in list")
+            self.logger.info("[Flight] No more missions in list")
             return 0
 
         # otherwise, set the next mission to the next mission in the list
         else:
-            if self.logger:
-                self.logger.info(
-                    f"[Flight] Queuing next mission in list of {len(self.mission_queue)} missions"
-                )
+            self.logger.info(f"[Flight] Queuing next mission in list of {len(self.mission_queue)} missions")
             next_mission = self.mission_queue[0]
 
         # calculate the target index
@@ -222,22 +207,19 @@ class FlightController(Controller):
 
         # verify that the response was received
         if response == self.TIMEOUT_ERROR or response == self.BAD_RESPONSE_ERROR:
-            if self.logger:
-                self.logger.critical("[Flight] Failed to wait for next mission.")
+            self.logger.critical("[Flight] Failed to wait for next mission.")
             return response
 
         # Clear the mission
         response = current_mission.clear_mission()
         if response:
-            if self.logger:
-                self.logger.critical("[Flight] Failed to send next mission.")
+            self.logger.critical("[Flight] Failed to send next mission.")
             return response
 
         # Send the next mission
         result = next_mission.send_mission()
         if result:
-            if self.logger:
-                self.logger.critical("[Flight] Failed to send next mission.")
+            self.logger.critical("[Flight] Failed to send next mission.")
             return result
 
         # set the mode to AUTO
@@ -245,12 +227,10 @@ class FlightController(Controller):
 
         # verify that the mode was set successfully
         if response:
-            if self.logger:
-                self.logger.critical("[Flight] Failed to send next mission.")
+            self.logger.critical("[Flight] Failed to send next mission.")
             return response
 
-        if self.logger:
-            self.logger.info("[Flight] Next mission sent")
+        self.logger.info("[Flight] Next mission sent")
         return result
 
     def await_landing(self, timeout=60) -> int:
@@ -270,8 +250,7 @@ class FlightController(Controller):
             message_type=245, interval=1e6
         )  # 245 is landing status (EXTENDED_SYS_STATE), 1e6 is 1 second
         if response:
-            if self.logger:
-                self.logger.critical("[Flight] Failed waiting for landing.")
+            self.logger.critical("[Flight] Failed waiting for landing.")
             return response
 
         # wait for landing status to be landed
@@ -282,8 +261,7 @@ class FlightController(Controller):
             # check for timeout
             if time.time() - start_time > timeout:
                 response = self.TIMEOUT_ERROR
-                if self.logger:
-                    self.logger.error("[Flight] Timed out waiting for landing.")
+                self.logger.error("[Flight] Timed out waiting for landing.")
                 return response
 
             # get the landing status
@@ -291,8 +269,7 @@ class FlightController(Controller):
 
             # verify that the response was received
             if response == self.TIMEOUT_ERROR or response == self.BAD_RESPONSE_ERROR:
-                if self.logger:
-                    self.logger.error("[Flight] Failed waiting for landing.")
+                self.logger.error("[Flight] Failed waiting for landing.")
                 return response
 
             landing_status = response
@@ -302,8 +279,7 @@ class FlightController(Controller):
             message_type=245
         )  # 245 is landing status (EXTENDED_SYS_STATE)
         if response:
-            if self.logger:
-                self.logger.error("[Flight] Error waiting for landing.")
+            self.logger.error("[Flight] Error waiting for landing.")
             return response
 
         return 0
@@ -316,8 +292,7 @@ class FlightController(Controller):
             int: 0 if the jump was successful, otherwise an error code.
         """
 
-        if self.logger:
-            self.logger.info("[Flight] Waiting for current mission index")
+        self.logger.info("[Flight] Waiting for current mission index")
         # wait for the current mission target to be received (should be broadcast by default)
         response = self.receive_current_mission_index()
         if response == self.TIMEOUT_ERROR:
@@ -351,10 +326,8 @@ class FlightController(Controller):
         # set the channel to be received
         channel = f"chan{channel}_raw"
 
-        if self.logger:
-            self.logger.info(
-                f"[Flight] Waiting for channel {channel} to be set to {value}"
-            )
+        self.logger.info(f"[Flight] Waiting for channel {channel} to be set to {value}")
+
         # only wait for the channel to be set for a certain amount of time
         while time.time() - start_time < wait_time:
             # get channel inputs
@@ -362,8 +335,7 @@ class FlightController(Controller):
 
             # verify that the response was received
             if response == self.TIMEOUT_ERROR or response == self.BAD_RESPONSE_ERROR:
-                if self.logger:
-                    self.logger.critical("[Flight] Failed waiting for channel input.")
+                self.logger.critical("[Flight] Failed waiting for channel input.")
                 return response
 
             # channel key is 'chanX_raw' where X is the channel number
@@ -375,14 +347,50 @@ class FlightController(Controller):
                 latest_value > value - value_tolerance
                 and latest_value < value + value_tolerance
             ):
-                if self.logger:
-                    self.logger.info(
-                        f"[Flight] Channel {channel} set to {latest_value}"
-                    )
+                self.logger.info(f"[Flight] Channel {channel} set to {latest_value}")
+
                 return 0
 
-        if self.logger:
-            self.logger.critical(
-                f"[Flight] Timed out waiting for channel {channel} to be set to {value}"
-            )
+        self.logger.critical(
+            f"[Flight] Timed out waiting for channel {channel} to be set to {value}"
+        )
         return self.TIMEOUT_ERROR
+    
+    def set_geofence(self, geofence_filename: str) -> int:
+        """
+        Send and enable the geofence from a file.
+
+        Args:
+            geofence_filename (str): The file containing the geofence mission.
+
+        Returns:
+            int: 0 if the geofence was set successfully, otherwise an error code.
+        """
+        # Load the geofence mission from the file
+        response = self.geofence.load_mission_from_file(geofence_filename)
+
+        if response:
+            self.logger.critical("[Flight] Geofence failed, could not load mission")
+            return response
+
+        if not self.geofence.is_geofence:
+            self.logger.critical("[Flight] Geofence failed, mission is not a geofence")
+            return self.INVALID_MISSION_ERROR
+
+        # send the geofence mission
+        response = self.geofence.send_mission()
+
+        # verify that the mission was sent successfully
+        if response:
+            self.logger.critical("[Flight] Geofence failed, mission not sent")
+            return response
+
+        self.logger.info("[Flight] Geofence sent")
+
+        response = self.enable_geofence()
+        if response:
+            self.logger.critical("[Flight] Geofence failed, could not be enabled")
+            return response
+        
+        self.logger.info("[Flight] Geofence set and enabled")
+        return 0

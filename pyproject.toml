@@ -13,7 +13,11 @@ license='GPL-3.0'
 readme='README.md'
 dependencies=[
     'pymavlink>=2.4.0',
-    'pyparsing'
+    'pyparsing',
+    'colorlog',
+    'datetime',
+    'logging',
+    
 ]
 classifiers=[
     'Development Status :: 4 - Beta',

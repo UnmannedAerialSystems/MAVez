@@ -7,3 +7,4 @@ mav.tlog.raw
 way.txt
 /src/MAVez/__pycache__
 /venv
+/flight_logs

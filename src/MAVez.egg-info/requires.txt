@@ -1,5 +1,8 @@
 pymavlink>=2.4.0
 pyparsing
+colorlog
+datetime
+logging
 
 [docs]
 sphinx>=4.0.0

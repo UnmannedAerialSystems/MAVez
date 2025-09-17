@@ -38,8 +38,8 @@ class Mission:
         self.controller = controller
         self.type = type
         self.mission_items: list[MissionItem] = []
-        self.has_takeoff = False
-        self.has_landing = False
+        self.is_takeoff = False
+        self.is_landing = False
         self.is_geofence = self.type == 1
 
     def __str__(self) -> str:
@@ -271,15 +271,15 @@ class Mission:
             return response  # propagate error code
 
         # start the mission
-        if self.type == 0:  # if the mission is a waypoint mission
-            self.controller.set_mode("AUTO")  # set the mode to AUTO
-            self.controller.start_mission(0, len(self.mission_items) - 1)
+        # if self.type == 0:  # if the mission is a waypoint mission
+            # self.controller.set_mode("AUTO")  # set the mode to AUTO
+            # self.controller.start_mission(0, len(self.mission_items) - 1)
 
         return 0
 
     def clear_mission(self) -> int:
         """
-        Clear the mission from the drone.
+        Clear the mission from the vehicle.
 
         Returns:
             int: 0 if the mission was cleared successfully, or an error code if there was an error.

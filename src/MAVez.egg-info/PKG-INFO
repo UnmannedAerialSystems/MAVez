@@ -16,6 +16,9 @@ Description-Content-Type: text/markdown
 License-File: LICENSE
 Requires-Dist: pymavlink>=2.4.0
 Requires-Dist: pyparsing
+Requires-Dist: colorlog
+Requires-Dist: datetime
+Requires-Dist: logging
 Provides-Extra: docs
 Requires-Dist: sphinx>=4.0.0; extra == "docs"
 Requires-Dist: furo; extra == "docs"

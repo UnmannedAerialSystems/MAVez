@@ -14,6 +14,7 @@ from pymavlink import mavutil
 from pyparsing import Any # type: ignore[import]
 from MAVez.coordinate import Coordinate
 from MAVez.safe_logger import SafeLogger
+import MAVez.enums as enums
 
 
 class Controller:
@@ -126,7 +127,7 @@ class Controller:
                 return 0
             else:
                 self.logger.error(
-                    f"[Controller] Mission ack error: {response.type}"
+                    f"[Controller] Mission ack error: {enums.get_mav_mission_result_string(response.type)} "
                 )
                 return response.type if response.type is not None else self.BAD_RESPONSE_ERROR
         else:
@@ -242,7 +243,7 @@ class Controller:
                 return 0
             else:
                 self.logger.error(
-                    f"[Controller] Failed to set mode: {response.result}"
+                    f"[Controller] Failed to set mode: {enums.get_mav_result_string(response.result)}"
                 )
                 return response.result if response.result is not None else self.BAD_RESPONSE_ERROR
         else:
@@ -281,11 +282,11 @@ class Controller:
         )
         if response:
             if response.result == 0:
-                self.logger.info("[Controller] Drone armed successfully")
+                self.logger.info("[Controller] Vehicle armed successfully")
                 return 0
             else:
                 self.logger.error(
-                        f"[Controller] Failed to arm drone: {response.result}"
+                        f"[Controller] Failed to arm vehicle: {enums.get_mav_result_string(response.result)}"
                     )
                 return response.result if response.result is not None else self.BAD_RESPONSE_ERROR
         else:
@@ -324,11 +325,11 @@ class Controller:
         )
         if response:
             if response.result == 0:
-                self.logger.info("[Controller] Drone disarmed successfully")
+                self.logger.info("[Controller] Vehicle disarmed successfully")
                 return 0
             else:
                 self.logger.error(
-                    f"[Controller] Failed to disarm drone: {response.result}"
+                    f"[Controller] Failed to disarm vehicle: {enums.get_mav_result_string(response.result)}"
                     )
                 return response.result if response.result is not None else self.BAD_RESPONSE_ERROR
         else:
@@ -368,7 +369,7 @@ class Controller:
                 return 0
             else:
                 self.logger.error(
-                        f"[Controller] Failed to enable geofence: {response.result}"
+                        f"[Controller] Failed to enable geofence: {enums.get_mav_result_string(response.result)}"
                     )
                 return response.result if response.result is not None else self.BAD_RESPONSE_ERROR
         else:
@@ -412,7 +413,7 @@ class Controller:
                 return 0
             else:
                 self.logger.error(
-                    f"[Controller] Failed to disable geofence: {response.result}"
+                    f"[Controller] Failed to disable geofence: {enums.get_mav_result_string(response.result)}"
                 )
                 return response.result if response.result is not None else self.BAD_RESPONSE_ERROR
         else:
@@ -470,7 +471,7 @@ class Controller:
                 return 0
             else:
                 self.logger.error(
-                    f"[Controller] Failed to set home location: {response.result}"
+                    f"[Controller] Failed to set home location: {enums.get_mav_result_string(response.result)}"
                     )
                 return response.result if response.result is not None else self.BAD_RESPONSE_ERROR
         else:
@@ -512,7 +513,7 @@ class Controller:
                 return 0
             else:
                 self.logger.error(
-                    f"[Controller] Failed to set servo {servo_number}: {response.result}"
+                    f"[Controller] Failed to set servo {servo_number}: {enums.get_mav_result_string(response.result)}"
                 )
                 return response.result if response.result is not None else self.BAD_RESPONSE_ERROR
         else:
@@ -610,7 +611,7 @@ class Controller:
         )
         if response:
             self.logger.info(
-                f"[Controller] Received landing status: {response.landed_state}"
+                f"[Controller] Received landing status: {enums.get_mav_landed_state_string(response.landed_state)}"
             )
             return response.landed_state if response.landed_state is not None else self.BAD_RESPONSE_ERROR
         else:
@@ -657,7 +658,7 @@ class Controller:
                 return 0
             else:
                 self.logger.error(
-                    f"[Controller] Failed to set message interval: {response.result}"
+                    f"[Controller] Failed to set message interval: {enums.get_mav_result_string(response.result)}"
                 )
                 return response.result if response.result is not None else self.BAD_RESPONSE_ERROR
         else:
@@ -703,7 +704,7 @@ class Controller:
                 return 0
             else:
                 self.logger.error(
-                    f"[Controller] Failed to disable message interval: {response.result}"
+                    f"[Controller] Failed to disable message interval: {enums.get_mav_result_string(response.result)}"
                 )
                 return response.result if response.result is not None else self.BAD_RESPONSE_ERROR
         else:
@@ -770,7 +771,7 @@ class Controller:
                 return 0
             else:
                 self.logger.error(
-                    f"[Controller] Failed to set current mission index: {response.result}"
+                    f"[Controller] Failed to set current mission index: {enums.get_mav_mission_result_string(response.result)}"
                 )
                 return response.result if response.result is not None else self.BAD_RESPONSE_ERROR
         else:
@@ -818,7 +819,7 @@ class Controller:
                 return 0
             else:
                 self.logger.error(
-                    f"[Controller] Failed to start mission: {response.result}"
+                    f"[Controller] Failed to start mission: {enums.get_mav_mission_result_string(response.result)}"
                 )
                 return response.result if response.result is not None else self.BAD_RESPONSE_ERROR
         else:
