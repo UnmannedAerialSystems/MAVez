@@ -12,9 +12,9 @@ For detailed documentation on pymavlink, visit [mavlink.io](https://mavlink.io/e
 
 - [Installation](#installation)
 - [Example Usage](#example-usage)
-- [Module Overview](#module-overview)
 - [License](#license)
 - [Authors](#authors)
+- [Appendix](#appendix)
 
 ## Installation
 
@@ -68,6 +68,12 @@ This project is licensed under the [GNU General Public License v3.0](LICENSE).
 ## Appendix:
 
 ### SITL Installation
+
+#### Windows
+
+SITL comes precompiled for Windows as part of Mission Planner. [Installing Mission Planner](https://ardupilot.org/planner/docs/mission-planner-installation.html) is the most painless method for using SITL on Windows.
+
+#### MacOS
 
 1. Install prerequisites:
 
