@@ -3,3 +3,6 @@ furo
 sphinx-autodoc-typehints
 pymavlink>=2.4.0
 pyparsing
+colorlog
+logging
+datetime
