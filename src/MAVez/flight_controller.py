@@ -1,8 +1,8 @@
 # flight_controller.py
-# version: 2.0.1
+# version: 2.1.0
 # Original Author: Theodore Tasman
 # Creation Date: 2025-01-30
-# Last Modified: 2025-09-15
+# Last Modified: 2025-09-17
 # Organization: PSU UAS
 
 """

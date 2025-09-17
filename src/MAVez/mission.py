@@ -1,8 +1,8 @@
 # mission.py
-# version: 1.1.0
+# version: 1.2.0
 # Author: Theodore Tasman
 # Creation Date: 2025-01-30
-# Last Modified: 2025-09-15
+# Last Modified: 2025-09-17
 # Organization: PSU UAS
 
 """

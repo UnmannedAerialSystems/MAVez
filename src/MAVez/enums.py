@@ -1,3 +1,9 @@
+# safe_logger.py
+# version: 1.0.0
+# Original Author: Theodore Tasman
+# Creation Date: 2025-09-17
+# Last Modified: 2025-09-17
+# Organization: PSU UAS
 
 MAV_RESULTS = {
     0: "MAV_RESULT_ACCEPTED",
