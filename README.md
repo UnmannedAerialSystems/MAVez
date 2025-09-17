@@ -26,7 +26,7 @@ While not required, it is highly recommended that you utilize [ArduPilot's Softw
 
 ## Example Usage
 
-Below is a simple script designed to work with SITL
+Below is a simple script designed to work with SITL. This example is provided at `/examples/basic.py/`
 
 ```Python
 from MAVez import flight_controller
