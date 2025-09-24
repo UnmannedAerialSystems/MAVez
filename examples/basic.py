@@ -2,24 +2,21 @@ from MAVez import flight_controller
 from MAVez.safe_logger import configure_logging
 
 logger = configure_logging()
+async def main():
+    controller = flight_controller.FlightController(connection_string='tcp:127.0.0.1:5762', baud=57600, logger=logger)
 
-controller = flight_controller.FlightController(connection_string='tcp:127.0.0.1:5762', baud=57600, logger=logger)
+    await controller.set_geofence("./examples/sample_missions/sample_fence.txt")
 
-controller.set_geofence("./examples/sample_missions/sample_fence.txt")
+    await controller.arm()
 
-controller.arm()
+    await controller.takeoff("./examples/sample_missions/sample1.txt")
+    controller.append_mission("./examples/sample_missions/sample2.txt")
+    controller.append_mission("./examples/sample_missions/sample3.txt")
 
-controller.takeoff("./examples/sample_missions/sample1.txt")
+    await controller.auto_send_next_mission()
+    await controller.auto_send_next_mission()
 
-controller.append_mission("./examples/sample_missions/sample2.txt")
+    await controller.wait_for_landing()
 
-controller.append_mission("./examples/sample_missions/sample3.txt")
-
-controller.wait_and_send_next_mission()
-
-controller.wait_and_send_next_mission()
-
-controller.await_landing()
-
-controller.disarm()
+    await controller.disarm()
 
