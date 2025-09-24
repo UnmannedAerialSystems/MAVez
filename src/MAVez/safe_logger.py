@@ -51,6 +51,9 @@ class SafeLogger:
 
 
 def configure_logging():
+    """
+    Configure logging to log messages to both a file and the console with colors.
+    """
     # Ensure the flight_logs directory exists
     os.makedirs("./flight_logs", exist_ok=True)
 

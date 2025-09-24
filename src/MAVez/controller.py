@@ -1,8 +1,8 @@
 # mav_controller.py
-# version: 2.1.0
+# version: 3.1.0
 # Author: Theodore Tasman
 # Creation Date: 2025-01-30
-# Last Modified: 2025-09-17
+# Last Modified: 2025-09-24
 # Organization: PSU UAS
 
 """
@@ -16,6 +16,7 @@ from pyparsing import Any # type: ignore[import]
 from MAVez.coordinate import Coordinate
 from MAVez.safe_logger import SafeLogger
 import MAVez.enums as enums
+from MAVez.zmq_broker import ZMQBroker
 
 
 class Controller:
@@ -29,9 +30,6 @@ class Controller:
 
     Raises:
         ConnectionError: If the connection to ardupilot fails.
-
-    Returns:
-        A Controller instance that can be used to communicate with ardupilot.
     """
 
     # error codes
@@ -41,7 +39,12 @@ class Controller:
 
     TIMEOUT_DURATION = 5  # timeout duration in seconds
 
-    def __init__(self, connection_string: str = "tcp:127.0.0.1:5762", baud: int = 57600, logger: Logger | None = None):
+    def __init__(self, connection_string: str = "tcp:127.0.0.1:5762", 
+                 baud: int = 57600, 
+                 logger: Logger | None = None, 
+                 zmq_host: str | None = None, 
+                 zmq_port: int | None = None, 
+                 zmq_topic: str = "mavlink") -> None:
         """
         Initialize the controller.
 
@@ -65,11 +68,17 @@ class Controller:
         response = self.master.wait_heartbeat(  # type: ignore
             blocking=True, timeout=self.TIMEOUT_DURATION
         ) 
-
         # check if the connection was successful
         if not response:
             self.logger.error("[Controller] Connection failed")
             raise ConnectionError("Connection failed")
+        self.logger.info(f"[Controller] Connection successful. Heartbeat from system (system {self.master.target_system} component {self.master.target_component})")  # type: ignore
+
+        self.zmq_broker = None
+        if zmq_host and zmq_port:
+            self.zmq_broker = ZMQBroker(host=zmq_host, port=zmq_port)
+            self.zmq_topic = zmq_topic
+            self.logger.info(f"[Controller] ZMQ Broker initialized at {zmq_host}:{zmq_port} with topic '{zmq_topic}'")
 
         # start the message pump
         asyncio.create_task(self.message_pump())
@@ -98,9 +107,11 @@ class Controller:
         """
         loop = asyncio.get_running_loop()
         while True:
-            msg = await loop.run_in_executor(None, self.master.recv_match, None, False)
+            msg = await loop.run_in_executor(None, self.master.recv_match, None, None, True) # call recv_match in a thread, blocking
             if msg:
                 await self.msg_queue.put(msg)
+                if self.zmq_broker:
+                    await self.zmq_broker.publish(self.zmq_topic, msg)
             else:
                 await asyncio.sleep(0.01)
     

@@ -4,6 +4,7 @@ pyproject.toml
 src/MAVez/__init__.py
 src/MAVez/controller.py
 src/MAVez/coordinate.py
+src/MAVez/enums.py
 src/MAVez/flight_controller.py
 src/MAVez/mission.py
 src/MAVez/mission_item.py

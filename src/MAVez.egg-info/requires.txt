@@ -3,6 +3,7 @@ pyparsing
 colorlog
 datetime
 logging
+asyncio
 
 [docs]
 sphinx>=4.0.0

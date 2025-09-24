@@ -1,8 +1,8 @@
 # flight_controller.py
-# version: 2.1.0
+# version: 3.0.1
 # Original Author: Theodore Tasman
 # Creation Date: 2025-01-30
-# Last Modified: 2025-09-17
+# Last Modified: 2025-09-24
 # Organization: PSU UAS
 
 """
@@ -41,9 +41,9 @@ class FlightController(Controller):
 
     from typing import Literal
 
-    def __init__(self, connection_string: str="tcp:127.0.0.1:5762", baud: int=57600, logger: Logger|None=None, craft_type: Literal["plane", "copter"]="plane"):
+    def __init__(self, connection_string: str="tcp:127.0.0.1:5762", baud: int=57600, logger: Logger|None=None, craft_type: Literal["plane", "copter"]="plane", zmq_host: str|None=None, zmq_port: int|None=None, zmq_topic: str="mavlink") -> None:
         # Initialize the controller
-        super().__init__(connection_string, logger=logger, baud=baud)
+        super().__init__(connection_string, logger=logger, baud=baud, zmq_host=zmq_host, zmq_port=zmq_port, zmq_topic=zmq_topic)
 
         self.geofence = Mission(self, type=1)  # type 1 is geofence
 
@@ -208,13 +208,13 @@ class FlightController(Controller):
             return response
 
         # Clear the mission
-        response = current_mission.clear_mission()
+        response = await current_mission.clear_mission()
         if response:
             self.logger.critical("[Flight] Failed to send next mission.")
             return response
 
         # Send the next mission
-        result = next_mission.send_mission()
+        result = await next_mission.send_mission()
         if result:
             self.logger.critical("[Flight] Failed to send next mission.")
             return result
