@@ -1,5 +1,7 @@
 from MAVez import flight_controller
 from MAVez.safe_logger import configure_logging
+import asyncio
+
 
 logger = configure_logging()
 async def main():
@@ -19,4 +21,7 @@ async def main():
     await controller.wait_for_landing()
 
     await controller.disarm()
+
+if __name__ == "__main__":
+    asyncio.run(main())
 
