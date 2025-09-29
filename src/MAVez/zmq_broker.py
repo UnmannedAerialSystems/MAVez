@@ -28,7 +28,7 @@ class ZMQBroker():
 
     async def publish(self, topic: str, message: Any) -> None:
         """
-        Publish a message to a specified topic.
+        Publish a message to a specified topic. The topic will be combined with the message type.
 
         Args:
             topic (str): The topic to publish the message to.
@@ -40,4 +40,14 @@ class ZMQBroker():
         message_type = message.get_type()
         data = translate_message(message)
         self.socket.send_string(f"{topic}_{message_type} {json.dumps(data)}")
+
+    def close(self) -> None:
+        """
+        Close the ZeroMQ socket and terminate the context.
+
+        Returns:
+            None
+        """
+        self.socket.close()
+        self.context.term()
 

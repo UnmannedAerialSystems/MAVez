@@ -80,8 +80,8 @@ class Controller:
             self.zmq_topic = zmq_topic
             self.logger.info(f"[Controller] ZMQ Broker initialized at {zmq_host}:{zmq_port} with topic '{zmq_topic}'")
 
-        # start the message pump
-        asyncio.create_task(self.message_pump())
+        self.__running = False
+        self.__message_pump_task = None
 
     def decode_error(self, error_code: int) -> str:
         """
@@ -101,19 +101,81 @@ class Controller:
 
         return errors_dict.get(error_code, f"UNKNOWN ERROR ({error_code})")
     
+    async def start(self):
+        """
+        Start the controller by initiating the message pump.
+
+        Returns:
+            None
+        """
+        if self.__message_pump_task is None:
+            self.__running = True
+            self.__message_pump_task = asyncio.create_task(self.message_pump())
+            self.logger.info("[Controller] Message pump started")
+
+    async def stop(self):
+        """
+        Stop the controller by cancelling the message pump.
+
+        Returns:
+            None
+        """
+        self.logger.info("[Controller] Shutting down...")
+
+        self.__running = False
+        if self.__message_pump_task:
+            self.__message_pump_task.cancel()
+            try:
+                await self.__message_pump_task
+            except asyncio.CancelledError:
+                self.logger.info("[Controller] Message pump stopped")
+            self.__message_pump_task = None
+        
+        if self.zmq_broker:
+            self.zmq_broker.close()
+            self.logger.info("[Controller] ZMQ Broker closed")
+        
+        self.logger.info("[Controller] Shutdown complete")
+    
     async def message_pump(self):
         """
         Continuously read MAVLink messages and push them into a queue.
         """
         loop = asyncio.get_running_loop()
-        while True:
-            msg = await loop.run_in_executor(None, self.master.recv_match, None, None, True) # call recv_match in a thread, blocking
-            if msg:
-                await self.msg_queue.put(msg)
-                if self.zmq_broker:
-                    await self.zmq_broker.publish(self.zmq_topic, msg)
-            else:
-                await asyncio.sleep(0.01)
+        try:
+            while self.__running:
+                # catch exceptions to prevent the loop from stopping
+                try:
+                    # use wait_for to add a timeout to recv_match
+                    try:
+                        msg = await asyncio.wait_for(
+                            loop.run_in_executor(None, lambda: self.master.recv_match(blocking=True)),
+                            timeout=5.0,
+                        )
+                    except asyncio.TimeoutError:
+                        msg = None
+                    if msg:
+                        await self.msg_queue.put(msg)
+                        if self.zmq_broker:
+                            await self.zmq_broker.publish(self.zmq_topic, msg)
+                    else:
+                        await asyncio.sleep(0.01)
+
+                except Exception as e:
+                    self.logger.error(f"[Controller] Error in message pump: {e}")
+        
+        # Handle shutdown gracefully
+        except asyncio.CancelledError:
+            self.logger.info("[Controller] Message pump cancelled")
+        finally:
+            self.logger.info("[Controller] Message pump stopped")
+
+    async def __aenter__(self):
+        await self.start()
+        return self
+    
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        await self.stop()
     
     async def receive_message(self, message_type: str, timeout: float = 5.0) -> Any:
         """
