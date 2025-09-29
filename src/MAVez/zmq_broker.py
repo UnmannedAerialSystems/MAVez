@@ -1,5 +1,5 @@
 # zmq_broker.py
-# version: 1.0.0
+# version: 1.1.0
 # Original Author: Theodore Tasman
 # Creation Date: 2025-09-24
 # Last Modified: 2025-09-24

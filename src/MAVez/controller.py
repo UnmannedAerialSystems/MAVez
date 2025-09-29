@@ -1,5 +1,5 @@
 # mav_controller.py
-# version: 3.1.0
+# version: 3.2.0
 # Author: Theodore Tasman
 # Creation Date: 2025-01-30
 # Last Modified: 2025-09-24
