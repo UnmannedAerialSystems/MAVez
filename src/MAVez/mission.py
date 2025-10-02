@@ -229,9 +229,12 @@ class Mission:
 
         return 0
 
-    async def send_mission(self) -> int:
+    async def send_mission(self, reset: bool = True) -> int:
         """
         Send the mission to ardupilot.
+
+        Args:
+            reset (bool): Whether to reset the mission index to 0 after sending the mission, default is True.
 
         Returns:
             int: 0 if the mission was sent successfully, or an error code if there was an error.
@@ -269,6 +272,12 @@ class Mission:
         response = await self.controller.receive_mission_ack()  # returns 0 if successful
         if response:
             return response  # propagate error code
+
+        response = await self.controller.set_current_mission_index(0, reset=reset)
+        if response:
+            if self.controller.logger:
+                self.controller.logger.critical("[Mission] Could not reset mission index.")
+            return response
 
         return 0
 
