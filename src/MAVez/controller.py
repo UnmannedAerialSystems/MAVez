@@ -710,13 +710,13 @@ class Controller:
             self.logger.error("[Controller] Bad response received for landing status")
             return self.BAD_RESPONSE_ERROR
 
-    async def set_message_interval(self, message_type, interval) -> int:
+    async def set_message_interval(self, message_type: int, interval: int) -> int:
         """
         Set the message interval for the specified message type.
 
         Args:
-            message_type (str): The type of message to set the interval for.
-            interval (int): The interval in milliseconds to set for the message type.
+            message_type (int): The type of message to set the interval for.
+            interval (int): The interval in microseconds to set for the message type.
             timeout (int): The timeout duration in seconds. Default is 5 seconds.
 
         Returns:
@@ -816,7 +816,7 @@ class Controller:
             self.logger.error("[Controller] Bad response received for mission item reached")
             return self.BAD_RESPONSE_ERROR
 
-    async def set_current_mission_index(self, index) -> int:
+    async def set_current_mission_index(self, index: int, reset: bool = False) -> int:
         """
         sets the target mission index to the specified index
 
@@ -833,7 +833,7 @@ class Controller:
             mavutil.mavlink.MAV_CMD_DO_SET_MISSION_CURRENT,  # command
             0,  # confirmation
             index,  # param1
-            0,  # param2
+            1 if reset else 0,  # param2
             0,  # param3
             0,  # param4
             0,  # param5

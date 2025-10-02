@@ -105,18 +105,18 @@ class FlightController(Controller):
             self.logger.critical("[Flight] Takeoff failed, mission not sent")
             return response
 
-        # wait for mission to be fully received
-        # Countdown from 5
-        self.logger.info("[Flight] Takeoff in 5 seconds")
-        for _ in range(5, 0, -1):
-            time.sleep(1)
-
         # set the mode to AUTO
         response = await self.set_mode("AUTO")
 
         # verify that the mode was set successfully
         if response:
             self.logger.critical("[Flight] Takeoff failed, mode not set to AUTO")
+            return response
+        
+        # reset mission index to 0
+        response = await self.set_current_mission_index(0, reset=True)
+        if response:
+            self.logger.critical("[Flight] Takeoff failed, could not reset mission index")
             return response
 
         # arm ardupilot
@@ -244,7 +244,7 @@ class FlightController(Controller):
 
         # start receiving landing status
         response = await self.set_message_interval(
-            message_type=245, interval=1e6
+            message_type=245, interval=100000
         )  # 245 is landing status (EXTENDED_SYS_STATE), 1e6 is 1 second
         if response:
             self.logger.critical("[Flight] Failed waiting for landing.")
