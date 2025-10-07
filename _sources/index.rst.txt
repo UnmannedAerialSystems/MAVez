@@ -20,7 +20,6 @@ The **"Standard Messages/Commands" → "common.xml"** section is a particularly 
    :maxdepth: 2
    :caption: Contents:
 
-   overview
    controller
    missions
    coordinate
