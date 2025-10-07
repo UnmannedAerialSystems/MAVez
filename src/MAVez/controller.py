@@ -636,7 +636,7 @@ class Controller:
             return self.TIMEOUT_ERROR
         elif hasattr(message, 'chancount'):
             self.logger.info(f"[Controller] Received channel input from {message.chancount} channels")
-            return message.chancount if message.chancount is not None else self.BAD_RESPONSE_ERROR
+            return message if message.chancount is not None else self.BAD_RESPONSE_ERROR
         else:
             self.logger.error("[Controller] Bad response received for channel input")
             return self.BAD_RESPONSE_ERROR
