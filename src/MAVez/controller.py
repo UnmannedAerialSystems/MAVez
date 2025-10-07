@@ -344,7 +344,7 @@ class Controller:
 
         message = await self.receive_message("COMMAND_ACK", timeout=self.TIMEOUT_DURATION)
         if message == self.TIMEOUT_ERROR:
-            self.logger.error("[Controller] Set home location command timed out")
+            self.logger.error("[Controller] Set mode command timed out")
             return self.TIMEOUT_ERROR
         elif hasattr(message, 'result') and message.result in enums.MAV_RESULTS.keys():
             if message.result == 0:
