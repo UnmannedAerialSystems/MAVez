@@ -745,7 +745,7 @@ class Controller:
             return self.TIMEOUT_ERROR
         elif hasattr(message, 'result') and message.result in enums.MAV_RESULTS.keys():
             if message.result == 0:
-                self.logger.info(f"[Controller] Set message interval for {message_type} to {interval} ms")
+                self.logger.info(f"[Controller] Set message interval for {message_type} to {interval} μs")
                 return 0
             else:
                 self.logger.error(f"[Controller] Failed to set message interval: {enums.get_mav_result_string(message.result)}")
