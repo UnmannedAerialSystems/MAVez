@@ -14,5 +14,8 @@ MAVez documentation
    :caption: Contents:
 
    overview
-   api
+   controller
+   missions
+   coordinate
+   utils
 
