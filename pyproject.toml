@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name='MAVez'
-version='2.1.0'
+version='3.2.3'
 description='An intuitive MAVLink library for ArduPilot via pymavlink'
 authors=[
     {name='The Pennsylvania State University Unmanned Aerial Systems Club', email='psuuasofficial@gmail.com'}
@@ -13,10 +13,11 @@ license='GPL-3.0'
 readme='README.md'
 dependencies=[
     'pymavlink>=2.4.0',
-    'pyparsing',
-    'colorlog',
-    'datetime',
-    'logging',
+    'pyparsing>=3.2.4',
+    'colorlog>=6.9.0',
+    'datetime>=5.5',
+    'logging>=0.4.9.6',
+    'pyzmq>=27.1.0'
     
 ]
 classifiers=[

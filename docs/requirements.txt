@@ -6,3 +6,5 @@ pyparsing
 colorlog
 logging
 datetime
+asyncio
+pyzmq

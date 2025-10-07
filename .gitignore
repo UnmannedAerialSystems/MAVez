@@ -5,6 +5,7 @@ mav.tlog
 mav.tlog.raw
 /terrain
 way.txt
-/src/MAVez/__pycache__
-/venv
-/flight_logs
+*__pycache__/
+*venv/
+*flight_logs/
+*.egg-info/

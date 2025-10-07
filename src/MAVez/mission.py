@@ -1,8 +1,8 @@
 # mission.py
-# version: 1.2.0
+# version: 3.0.0
 # Author: Theodore Tasman
 # Creation Date: 2025-01-30
-# Last Modified: 2025-09-17
+# Last Modified: 2025-09-24
 # Organization: PSU UAS
 
 """
@@ -229,9 +229,12 @@ class Mission:
 
         return 0
 
-    def send_mission(self) -> int:
+    async def send_mission(self, reset: bool = True) -> int:
         """
         Send the mission to ardupilot.
+
+        Args:
+            reset (bool): Whether to reset the mission index to 0 after sending the mission, default is True.
 
         Returns:
             int: 0 if the mission was sent successfully, or an error code if there was an error.
@@ -244,7 +247,7 @@ class Mission:
         start_time = time.time()
         while True:
             # await mission request
-            seq = self.controller.receive_mission_request()
+            seq = await self.controller.receive_mission_request()
 
             # verify seq is not an error
             if seq == self.controller.TIMEOUT_ERROR:
@@ -266,18 +269,19 @@ class Mission:
                 return self.TIMEOUT_ERROR
 
         # after sending all mission items, wait for mission acknowledgement
-        response = self.controller.receive_mission_ack()  # returns 0 if successful
+        response = await self.controller.receive_mission_ack()  # returns 0 if successful
         if response:
             return response  # propagate error code
 
-        # start the mission
-        # if self.type == 0:  # if the mission is a waypoint mission
-            # self.controller.set_mode("AUTO")  # set the mode to AUTO
-            # self.controller.start_mission(0, len(self.mission_items) - 1)
+        response = await self.controller.set_current_mission_index(0, reset=reset)
+        if response:
+            if self.controller.logger:
+                self.controller.logger.critical("[Mission] Could not reset mission index.")
+            return response
 
         return 0
 
-    def clear_mission(self) -> int:
+    async def clear_mission(self) -> int:
         """
         Clear the mission from the vehicle.
 
@@ -288,7 +292,7 @@ class Mission:
         self.controller.send_clear_mission()
 
         # await mission ack confirming mission was cleared
-        response = self.controller.receive_mission_ack()
+        response = await self.controller.receive_mission_ack()
         if response:
             if self.controller.logger:
                 self.controller.logger.critical("[Mission] Could not clear mission.")
