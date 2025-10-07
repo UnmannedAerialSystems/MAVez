@@ -26,7 +26,7 @@ class ZMQBroker():
         self.socket = self.context.socket(zmq.PUB)
         self.socket.bind(f"tcp://{self.host}:{self.port}")
 
-    async def publish(self, topic: str, message: Any) -> None:
+    def publish(self, topic: str, message: Any) -> None:
         """
         Publish a message to a specified topic. The topic will be combined with the message type.
 
