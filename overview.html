@@ -3,10 +3,10 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="Documentation" href="api.html"><link rel="prev" title="MAVez documentation" href="index.html">
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="Controllers" href="controller.html"><link rel="prev" title="MAVez documentation" href="index.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.09.25 -->
-        <title>Package Overview - MAVez documentation</title>
+        <title>Module Overview - MAVez documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=580074bf" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -172,7 +172,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -192,8 +192,11 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Package Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api.html">Documentation</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Module Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="controller.html">Controllers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="missions.html">Missions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="coordinate.html">Coordinate</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">Utils</a></li>
 </ul>
 
 </div>
@@ -227,184 +230,40 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="package-overview">
-<h1>Package Overview<a class="headerlink" href="#package-overview" title="Link to this heading">¶</a></h1>
+          <p><a href="#id1"><span class="problematic" id="id2">``</span></a><a href="#id3"><span class="problematic" id="id4">`</span></a>rst
+PSU UAS MAVez
+=============
+<strong>The Pennsylvania State University</strong></p>
+<p>A Python library for controlling <strong>ArduPilot</strong> from an external computer via <strong>pymavlink</strong>.</p>
+<p>For detailed documentation on <cite>pymavlink</cite>, visit the official site:
+<a class="reference external" href="https://mavlink.io/en/">mavlink.io</a>.
+The <strong>“Standard Messages/Commands” → “common.xml”</strong> section is a particularly useful reference.</p>
+<section id="module-overview">
+<h1>Module Overview<a class="headerlink" href="#module-overview" title="Link to this heading">¶</a></h1>
 <ul class="simple">
-<li><p><a class="reference external" href="#coordinate">coordinate.py</a>
-- Representation of a GPS coordinate, functionality for comparing between coordinates</p></li>
-<li><p><a class="reference external" href="#mission-item">mission_item.py</a>
-- Representation of a singular MAVLink <a class="reference external" href="https://mavlink.io/en/messages/common.html#MISSION_ITEM_INT">MISSION_ITEM_INT</a></p></li>
-<li><p><a class="reference external" href="#mission">mission.py</a>
-- Representation of a complete ArduPilot mission</p></li>
-<li><p><a class="reference external" href="#controller">controller.py</a>
-- Lowest level of abstraction for communicating with Ardupilot via pymavlink, atomic methods</p></li>
-<li><p><a class="reference external" href="#flight-controller">flight_controller.py</a>
-- Extension of the controller class, with multiple operations combined into singular methods</p></li>
+<li><p><a class="reference external" href="https://unmannedaerialsystems.github.io/MAVez/api.html#MAVez.controllers">**Controllers**</a>
+- Main controller classes for interfacing with the ArduPilot.
+- <a class="reference external" href="https://unmannedaerialsystems.github.io/MAVez/api.html#MAVez.controller.Controller">Controller</a> - Basic controller for atomic MAVLink communication.
+- <a class="reference external" href="https://unmannedaerialsystems.github.io/MAVez/api.html#MAVez.flight_controller.FlightController">FlightController</a> - Specialized controller with methods for handling complex MAVLink interactions.</p></li>
+<li><p><a class="reference external" href="https://unmannedaerialsystems.github.io/MAVez/api.html#MAVez.mission">**Missions**</a>
+- Classes for creating and managing missions.
+- <a class="reference external" href="https://unmannedaerialsystems.github.io/MAVez/api.html#MAVez.mission.Mission">Mission</a> - Represents a full mission with multiple waypoints.
+- <a class="reference external" href="https://unmannedaerialsystems.github.io/MAVez/api.html#MAVez.mission_item.MissionItem">MissionItem</a> - Represents a single waypoint or command in a mission.</p></li>
+<li><p><a class="reference external" href="https://unmannedaerialsystems.github.io/MAVez/api.html#MAVez.coordinate">**Coordinate**</a>
+- Class representing geographic coordinates with latitude, longitude, and altitude.
+- Includes methods for distance and bearing calculations.</p></li>
+<li><p><a class="reference external" href="https://unmannedaerialsystems.github.io/MAVez/api.html#MAVez.utils">**General Utilities**</a>
+- General utility functions and classes for the library.
+- <a class="reference external" href="https://unmannedaerialsystems.github.io/MAVez/api.html#MAVez.zmq_broker">**ZeroMQ Broker**</a> - Implements a ZeroMQ broker for inter-process communication.
+- <a class="reference external" href="https://unmannedaerialsystems.github.io/MAVez/api.html#MAVez.safe_logger">**Safe Logger**</a> - Only logs messages if a logger is provided.
+- <a class="reference external" href="https://unmannedaerialsystems.github.io/MAVez/api.html#MAVez.translate_message">**Translate Message**</a> - Utility for translating MAVLink messages to human-readable formats.
+- <a class="reference external" href="https://unmannedaerialsystems.github.io/MAVez/api.html#MAVez.enums">**Enums**</a> - Enumerations for various MAVLink constants and types.</p></li>
 </ul>
-<section id="coordinate">
-<h2>Coordinate<a class="headerlink" href="#coordinate" title="Link to this heading">¶</a></h2>
-<p><em>A GPS coordinate compatible with MAVLink</em></p>
-<p><strong>Attributes:</strong></p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">is_int</span></code>: Boolean flag indicating whether latitude/longitude are represented in degrees or integer microdegrees (x10^7). Integer coordinates are required for many MAVlink messages</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">lat</span></code>: Latitude of the coordinate (unit depends on <code class="docutils literal notranslate"><span class="pre">is_int</span></code>)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">lon</span></code>: Longitude of the coordinate (unit depends on <code class="docutils literal notranslate"><span class="pre">is_int</span></code>)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">alt</span></code>: Altitude of the coordinate. Always in float meters</p></li>
-</ul>
-<p><strong>Methods:</strong></p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">dms_to_dd</span></code>: Convert lat or lon from degrees, minutes, seconds to decimal degrees</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">offset_coordinate</span></code>: Find a new coordinate a specified distance away along a specified heading</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">normalize</span></code>: Converts another coordinate object to utilize the same <code class="docutils literal notranslate"><span class="pre">is_int</span></code> status</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">distance_to</span></code>: Distance from <code class="docutils literal notranslate"><span class="pre">self</span></code> to another coordinate object</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">bearing_to</span></code>: Compass bearing from <code class="docutils literal notranslate"><span class="pre">self</span></code> to another coordinate object</p></li>
-</ul>
-</section>
-<section id="mission-item">
-<h2>Mission Item<a class="headerlink" href="#mission-item" title="Link to this heading">¶</a></h2>
-<p><em>A waypoint; a singular `MISSION_ITEM_INT &lt;https://mavlink.io/en/messages/common.html#MISSION_ITEM_INT&gt;`__</em></p>
-<p><strong>Attributes:</strong></p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">seq</span></code>: Index/position of this waypoint in the mission</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">frame</span></code>: The <a class="reference external" href="https://mavlink.io/en/messages/common.html#MAV_FRAME">MAV_FRAME</a></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">command</span></code>: The <a class="reference external" href="https://mavlink.io/en/messages/common.html#mav_commands">MAV_CMD</a> for this waypoint</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">current</span></code>: Boolean indicator whether this is the current waypoint</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">auto_continue</span></code>: Boolean indicator whether the mission should automatically proceed</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">x</span></code>: Integer latitude of the coordinate</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">y</span></code>: Integer longitude of the coordinate</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">z</span></code>: Altitude of the coordinate</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">param1</span></code> - <code class="docutils literal notranslate"><span class="pre">param4</span></code>: Mission parameters 1 through 4</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">type</span></code>: The <a class="reference external" href="https://mavlink.io/en/messages/common.html#MAV_MISSION_TYPE">MAV_MISSION_TYPE</a> of this mission</p></li>
-</ul>
-<p><strong>Properties:</strong></p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">Message</span></code>: Returns the MAVLink message for this mission item</p></li>
-</ul>
-</section>
-<section id="mission">
-<h2>Mission<a class="headerlink" href="#mission" title="Link to this heading">¶</a></h2>
-<p><em>A list of Mission Items making up a waypoint mission or geofence</em></p>
-<p><strong>Attributes:</strong></p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">controller</span></code>: A Controller or Flight object for ArduPilot communication</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">type</span></code>: The <a class="reference external" href="https://mavlink.io/en/messages/common.html#MAV_MISSION_TYPE">MAV_MISSION_TYPE</a> of this mission</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">mission_items</span></code>: A list of mission item objects</p></li>
-</ul>
-<p><strong>Methods:</strong></p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">load_mission_from_file</span></code>: Loads a mission from a file in the QGC WPL 110 format (<a class="reference external" href="https://mavlink.io/en/file_formats/">reference</a>)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">save_mission_to_file</span></code>: Saves the mission to a file in the QGC WPL 110 format</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">send_mission</span></code>: Sends the mission to ArduPilot using <code class="docutils literal notranslate"><span class="pre">self.controller</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">clear_mission</span></code>: Clears the currently loaded mission in ArduPilot using <code class="docutils literal notranslate"><span class="pre">self.controller</span></code></p></li>
-</ul>
-</section>
-<section id="controller">
-<h2>Controller<a class="headerlink" href="#controller" title="Link to this heading">¶</a></h2>
-<p><em>Responsible for direct communication with ArduPilot via atomic messages</em></p>
-<p><strong>Attributes:</strong></p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">logger</span></code>: An object for logging activity. <strong>Optional</strong></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">master</span></code>: The master MAVLink connection to ArduPilot</p></li>
-</ul>
-<p><strong>Methods (sending):</strong></p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">send_message</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">send_mission_count</span></code>: Sends <a class="reference external" href="https://mavlink.io/en/messages/common.html#MISSION_COUNT">MISSION_COUNT</a></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">send_clear_mission</span></code>: Sends <a class="reference external" href="https://mavlink.io/en/messages/common.html#MISSION_CLEAR_ALL">MISSION_CLEAR_ALL</a></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">set_mode</span></code>: Sets vehicle mode via <a class="reference external" href="https://mavlink.io/en/messages/common.html#MAV_COMMAND_DO_SET_MODE">MAV_COMMAND_DO_SET_MODE</a></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">arm</span></code> / <code class="docutils literal notranslate"><span class="pre">disarm</span></code>: Arms/disarms with <a class="reference external" href="https://mavlink.io/en/messages/common.html#MAV_CMD_COMPONENT_ARM_DISARM">MAV_CMD_COMPONENT_ARM_DISARM</a></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">enable_geofence</span></code> / <code class="docutils literal notranslate"><span class="pre">disable_geofence</span></code>: Use <a class="reference external" href="https://mavlink.io/en/messages/common.html#MAV_CMD_DO_FENCE_ENABLE">MAV_CMD_DO_FENCE_ENABLE</a></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">set_home</span></code>: Set home with <a class="reference external" href="https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_HOME">MAV_CMD_DO_SET_HOME</a></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">set_servo</span></code>: Set servo PWM via <a class="reference external" href="https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_SERVO">MAV_CMD_DO_SET_SERVO</a></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">set_message_interval</span></code> / <code class="docutils literal notranslate"><span class="pre">disable_message_interval</span></code>: Use <a class="reference external" href="https://mavlink.io/en/messages/common.html#MAV_COMMAND_SET_MESSAGE_INTERVAL">MAV_COMMAND_SET_MESSAGE_INTERVAL</a></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">await_current_mission_index</span></code>: Wait for <a class="reference external" href="https://mavlink.io/en/messages/common.html#MISSION_CURRENT">MISSION_CURRENT</a></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">set_current_mission_index</span></code>: Set waypoint index using <a class="reference external" href="https://mavlink.io/en/messages/common.html#MAV_COMMAND_DO_SET_MISSION_CURRENT">MAV_COMMAND_DO_SET_MISSION_CURRENT</a></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">start_mission</span></code>: Start mission using <a class="reference external" href="https://mavlink.io/en/messages/common.html#MAV_COMMAND_MISSION_START">MAV_COMMAND_MISSION_START</a></p></li>
-</ul>
-<p><strong>Methods (receiving):</strong></p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">await_mission_request</span></code>: Waits for <a class="reference external" href="https://mavlink.io/en/messages/common.html#MISSION_REQUEST">MISSION_REQUEST</a></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">await_mission_ack</span></code>: Waits for <a class="reference external" href="https://mavlink.io/en/messages/common.html#MISSION_ACK">MISSION_ACK</a></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">await_mission_item_reached</span></code>: Waits for <a class="reference external" href="https://mavlink.io/en/messages/common.html#MISSION_ITEM_REACHED">MISSION_ITEM_REACHED</a></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">recieve_channel_input</span></code>: Receives <a class="reference external" href="https://mavlink.io/en/messages/common.html#RC_CHANNELS">RC_CHANNELS</a></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">recieve_gps</span></code>: Receives <a class="reference external" href="https://mavlink.io/en/messages/common.html#GLOBAL_POSITION_INT">GLOBAL_POSITION_INT</a></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">recieve_landing_status</span></code>: Receives <a class="reference external" href="https://mavlink.io/en/messages/common.html#EXTENDED_SYS_STATE">EXTENDED_SYS_STATE</a></p></li>
-</ul>
-</section>
-<section id="flight-controller">
-<h2>Flight Controller<a class="headerlink" href="#flight-controller" title="Link to this heading">¶</a></h2>
-<p><em>Responsible for managing the flight of the vehicle. Extends the controller class.</em></p>
-<p><strong>Attributes:</strong></p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">logger</span></code>: An object for logging activity. <strong>Optional</strong></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">master</span></code>: The master MAVLink connection to ArduPilot</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">takeoff_mission</span></code> - <code class="docutils literal notranslate"><span class="pre">airdrop_mission</span></code>: <a class="reference internal" href="#mission">Mission</a> objects for various phases</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">geofence</span></code>: <a class="reference internal" href="#mission">Mission</a> object to store the geofence boundary</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">mission_list</span></code>: List to maintain mission queue</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">preflight_check_done</span></code>: Boolean tracker for completion of preflight checks</p></li>
-</ul>
-<p><strong>Methods:</strong></p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">takeoff</span></code>: Handles takeoff procedure</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">append_mission</span></code>: Appends a mission file to mission queue</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">wait_for_waypoint_reached</span></code>: Blocks until waypoint is reached</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">wait_and_send_next_mission</span></code>: Blocks until mission end, then sends next</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">wait_for_landed</span></code>: Blocks until vehicle is landed</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">preflight_check</span></code>: Prepares vehicle for flight, sets geofence, marks preflight done</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">wait_for_channel_input</span></code>: Waits for RC channel input. <strong>Blocking</strong></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">get_altitude</span></code>: Gets the current altitude of the vehicle</p></li>
-</ul>
-</section>
-<section id="error-codes">
-<h2>Error Codes<a class="headerlink" href="#error-codes" title="Link to this heading">¶</a></h2>
-<p><strong>Code Distribution</strong>:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">100-199</span></code>: Controller errors</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">200-299</span></code>: Mission errors</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">300-399</span></code>: Flight errors</p></li>
-</ul>
-<div class="table-wrapper docutils container">
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>Code</p></th>
-<th class="head"><p>Name</p></th>
-<th class="head"><p>Description</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>101
-111</p></td>
-<td><p>TIMEOUT ERROR
-UNKNOWN MODE</p></td>
-<td><p>Timed out waiting for a response from the drone
-The requested mode does not exist</p></td>
-</tr>
-<tr class="row-odd"><td><p>201
-202
-203
-204</p></td>
-<td><p>FILE NOT FOUND
-FILE EMPTY
-START OUT OF RANGE
-END OUT OF RANGE</p></td>
-<td><p>No file found with given filename/filepath
-The given mission file is empty
-Start index is out of mission file range
-End index is out of mission file range</p></td>
-</tr>
-<tr class="row-even"><td><p>301</p></td>
-<td><p>PREFLIGHT CHECK ERROR</p></td>
-<td><p>Takeoff attempted before preflight check was completed</p></td>
-</tr>
-</tbody>
-</table>
-</div>
-</section>
 </section>
 
         </article>
@@ -412,12 +271,12 @@ End index is out of mission file range</p></td>
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="api.html">
+          <a class="next-page" href="controller.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Documentation</div>
+                <div class="title">Controllers</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
@@ -450,32 +309,8 @@ End index is out of mission file range</p></td>
         
       </footer>
     </div>
-    <aside class="toc-drawer">
+    <aside class="toc-drawer no-toc">
       
-      
-      <div class="toc-sticky toc-scroll">
-        <div class="toc-title-container">
-          <span class="toc-title">
-            On this page
-          </span>
-        </div>
-        <div class="toc-tree-container">
-          <div class="toc-tree">
-            <ul>
-<li><a class="reference internal" href="#">Package Overview</a><ul>
-<li><a class="reference internal" href="#coordinate">Coordinate</a></li>
-<li><a class="reference internal" href="#mission-item">Mission Item</a></li>
-<li><a class="reference internal" href="#mission">Mission</a></li>
-<li><a class="reference internal" href="#controller">Controller</a></li>
-<li><a class="reference internal" href="#flight-controller">Flight Controller</a></li>
-<li><a class="reference internal" href="#error-codes">Error Codes</a></li>
-</ul>
-</li>
-</ul>
-
-          </div>
-        </div>
-      </div>
       
       
     </aside>
