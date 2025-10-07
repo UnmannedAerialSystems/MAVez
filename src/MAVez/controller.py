@@ -810,7 +810,7 @@ class Controller:
             self.logger.error("[Controller] Receive current mission index timed out")
             return self.TIMEOUT_ERROR
         elif hasattr(message, 'seq'):
-            self.logger.info(f"[Controller] Received mission item reached: {message.seq}")
+            self.logger.info(f"[Controller] Current mission index: {message.seq}")
             return message.seq if message.seq is not None else self.BAD_RESPONSE_ERROR
         else:
             self.logger.error("[Controller] Bad response received for mission item reached")
