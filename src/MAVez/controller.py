@@ -1,8 +1,8 @@
 # mav_controller.py
-# version: 3.2.0
+# version: 3.3.0
 # Author: Theodore Tasman
 # Creation Date: 2025-01-30
-# Last Modified: 2025-09-24
+# Last Modified: 2025-10-07
 # Organization: PSU UAS
 
 """
@@ -157,7 +157,7 @@ class Controller:
                     if msg:
                         await self.msg_queue.put(msg)
                         if self.zmq_broker:
-                            await self.zmq_broker.publish(self.zmq_topic, msg)
+                            self.zmq_broker.publish(self.zmq_topic, msg)
                     else:
                         await asyncio.sleep(0.01)
 

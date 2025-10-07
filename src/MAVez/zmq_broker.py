@@ -1,8 +1,8 @@
 # zmq_broker.py
-# version: 1.1.0
+# version: 1.2.0
 # Original Author: Theodore Tasman
 # Creation Date: 2025-09-24
-# Last Modified: 2025-09-24
+# Last Modified: 2025-10-07
 # Organization: PSU UAS
 
 from typing import Any
