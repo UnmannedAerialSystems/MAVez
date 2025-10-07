@@ -5,8 +5,15 @@
    :alt: MAVez Logo
    :align: center
 
-MAVez documentation
-===================
+PSU UAS MAVez
+=============
+**The Pennsylvania State University**
+
+A Python library for controlling **ArduPilot** from an external computer via **pymavlink**.
+
+For detailed documentation on `pymavlink`, visit the official site:  
+`mavlink.io <https://mavlink.io/en/>`_.  
+The **"Standard Messages/Commands" → "common.xml"** section is a particularly useful reference.
 
 
 .. toctree::
