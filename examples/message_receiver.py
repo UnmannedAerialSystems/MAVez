@@ -1,7 +1,7 @@
 """
-A simple ZMQ subscriber example that connects to a ZMQ the controller's built-in broker and listens for all messages.
+A simple subscriber example that connects to the controller's built-in publisher and listens for all messages.
 
-To run this example, first start the controller with ZMQ broker enabled:
+To run this example, first start the controller with message publishing enabled:
     python examples/basic_messaging.py
 Then run this subscriber script:
     python examples/message_receiver.py

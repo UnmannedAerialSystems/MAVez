@@ -41,9 +41,15 @@ class FlightController(Controller):
 
     from typing import Literal
 
-    def __init__(self, connection_string: str="tcp:127.0.0.1:5762", baud: int=57600, logger: Logger|None=None, craft_type: Literal["plane", "copter"]="plane", zmq_host: str|None=None, zmq_port: int|None=None, zmq_topic: str="mavlink") -> None:
+    def __init__(self, connection_string: str="tcp:127.0.0.1:5762", 
+                 baud: int=57600, 
+                 logger: Logger|None=None, 
+                 craft_type: Literal["plane", "copter"]="plane", 
+                 message_host: str|None=None, 
+                 message_port: int|None=None, 
+                 message_topic: str="") -> None:
         # Initialize the controller
-        super().__init__(connection_string, logger=logger, baud=baud, zmq_host=zmq_host, zmq_port=zmq_port, zmq_topic=zmq_topic)
+        super().__init__(connection_string, logger=logger, baud=baud, message_host=message_host, message_port=message_port, message_topic=message_topic)
 
         self.geofence = Mission(self, type=1)  # type 1 is geofence
 

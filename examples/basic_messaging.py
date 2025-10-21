@@ -1,7 +1,7 @@
 """
-A simple ZMQ subscriber example that connects to a ZMQ the controller's built-in broker and listens for all messages.
+A simple publisher example that publishes all messages received.
 
-To run this example, first start the controller with ZMQ broker enabled:
+After starting this script, you can run the subscriber example to see the messages being published:
     python examples/basic_messaging.py
 Then run this subscriber script:
     python examples/message_receiver.py
@@ -19,9 +19,9 @@ async def main():
     async with flight_controller.FlightController(connection_string='tcp:127.0.0.1:5762', 
                                                     baud=57600, 
                                                     logger=logger, 
-                                                    zmq_host='127.0.0.1', 
-                                                    zmq_port=5555, 
-                                                    zmq_topic='') as controller:
+                                                    message_host='127.0.0.1', 
+                                                    message_port=5555, 
+                                                    message_topic='') as controller:
 
         await controller.set_geofence("./examples/sample_missions/sample_fence.txt")
 

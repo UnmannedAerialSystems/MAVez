@@ -43,9 +43,9 @@ class Controller:
     def __init__(self, connection_string: str = "tcp:127.0.0.1:5762", 
                  baud: int = 57600, 
                  logger: Logger | None = None, 
-                 zmq_host: str | None = None, 
-                 zmq_port: int | None = None, 
-                 zmq_topic: str = "mavlink") -> None:
+                 message_host: str | None = None, 
+                 message_port: int | None = None, 
+                 message_topic: str = "") -> None:
         """
         Initialize the controller.
 
@@ -76,10 +76,10 @@ class Controller:
         self.logger.info(f"[Controller] Connection successful. Heartbeat from system (system {self.master.target_system} component {self.master.target_component})")  # type: ignore
 
         self.pub = None
-        if zmq_host and zmq_port:
-            self.pub = Publisher(host=zmq_host, port=zmq_port, outbound_queue=self.msg_queue)
-            self.zmq_topic = zmq_topic
-            self.logger.info(f"[Controller] Publisher initialized at {zmq_host}:{zmq_port}")
+        if message_host and message_port:
+            self.pub = Publisher(host=message_host, port=message_port, outbound_queue=self.msg_queue)
+            self.message_topic = message_topic
+            self.logger.info(f"[Controller] Publisher initialized at {message_host}:{message_port}")
 
         self.__running = False
         self.__message_pump_task = None
