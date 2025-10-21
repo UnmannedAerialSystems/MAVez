@@ -17,7 +17,7 @@ dependencies=[
     'colorlog>=6.9.0',
     'datetime>=5.5',
     'logging>=0.4.9.6',
-    'pyzmq>=27.1.0'
+    'uas-messenger>=1.1.0'
     
 ]
 classifiers=[

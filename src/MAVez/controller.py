@@ -13,10 +13,11 @@ import asyncio
 from logging import Logger
 from pymavlink import mavutil
 from pyparsing import Any # type: ignore[import]
+from uas_messenger.publisher import Publisher
+from MAVez.translate_message import translate_message
 from MAVez.coordinate import Coordinate
 from MAVez.safe_logger import SafeLogger
 import MAVez.enums as enums
-from MAVez.zmq_broker import ZMQBroker
 
 
 class Controller:
@@ -74,11 +75,11 @@ class Controller:
             raise ConnectionError("Connection failed")
         self.logger.info(f"[Controller] Connection successful. Heartbeat from system (system {self.master.target_system} component {self.master.target_component})")  # type: ignore
 
-        self.zmq_broker = None
+        self.pub = None
         if zmq_host and zmq_port:
-            self.zmq_broker = ZMQBroker(host=zmq_host, port=zmq_port)
+            self.pub = Publisher(host=zmq_host, port=zmq_port, outbound_queue=self.msg_queue)
             self.zmq_topic = zmq_topic
-            self.logger.info(f"[Controller] ZMQ Broker initialized at {zmq_host}:{zmq_port} with topic '{zmq_topic}'")
+            self.logger.info(f"[Controller] Publisher initialized at {zmq_host}:{zmq_port}")
 
         self.__running = False
         self.__message_pump_task = None
@@ -131,10 +132,10 @@ class Controller:
                 self.logger.info("[Controller] Message pump stopped")
             self.__message_pump_task = None
         
-        if self.zmq_broker:
-            self.zmq_broker.close()
-            self.logger.info("[Controller] ZMQ Broker closed")
-        
+        if self.pub:
+            await self.pub.close()
+            self.logger.info("[Controller] Publisher closed")
+
         self.logger.info("[Controller] Shutdown complete")
     
     async def message_pump(self):
@@ -148,16 +149,16 @@ class Controller:
                 try:
                     # use wait_for to add a timeout to recv_match
                     try:
-                        msg = await asyncio.wait_for(
+                        mav_msg = await asyncio.wait_for(
                             loop.run_in_executor(None, lambda: self.master.recv_match(blocking=True)),
                             timeout=5.0,
                         )
                     except asyncio.TimeoutError:
-                        msg = None
-                    if msg:
-                        await self.msg_queue.put(msg)
-                        if self.zmq_broker:
-                            self.zmq_broker.publish(self.zmq_topic, msg)
+                        mav_msg = None
+                    if mav_msg:
+                        await self.msg_queue.put(mav_msg)
+                        msg = translate_message(mav_msg)
+                        self.pub.send(msg) if self.pub and msg else None
                     else:
                         await asyncio.sleep(0.01)
 
