@@ -1,5 +1,5 @@
 # mav_controller.py
-# version: 3.3.0
+# version: 3.4.0
 # Author: Theodore Tasman
 # Creation Date: 2025-01-30
 # Last Modified: 2025-10-07
@@ -13,10 +13,11 @@ import asyncio
 from logging import Logger
 from pymavlink import mavutil
 from pyparsing import Any # type: ignore[import]
+from uas_messenger.publisher import Publisher
+from MAVez.translate_message import translate_message
 from MAVez.coordinate import Coordinate
 from MAVez.safe_logger import SafeLogger
 import MAVez.enums as enums
-from MAVez.zmq_broker import ZMQBroker
 
 
 class Controller:
@@ -42,9 +43,9 @@ class Controller:
     def __init__(self, connection_string: str = "tcp:127.0.0.1:5762", 
                  baud: int = 57600, 
                  logger: Logger | None = None, 
-                 zmq_host: str | None = None, 
-                 zmq_port: int | None = None, 
-                 zmq_topic: str = "mavlink") -> None:
+                 message_host: str | None = None, 
+                 message_port: int | None = None, 
+                 message_topic: str = "") -> None:
         """
         Initialize the controller.
 
@@ -74,11 +75,11 @@ class Controller:
             raise ConnectionError("Connection failed")
         self.logger.info(f"[Controller] Connection successful. Heartbeat from system (system {self.master.target_system} component {self.master.target_component})")  # type: ignore
 
-        self.zmq_broker = None
-        if zmq_host and zmq_port:
-            self.zmq_broker = ZMQBroker(host=zmq_host, port=zmq_port)
-            self.zmq_topic = zmq_topic
-            self.logger.info(f"[Controller] ZMQ Broker initialized at {zmq_host}:{zmq_port} with topic '{zmq_topic}'")
+        self.pub = None
+        if message_host and message_port:
+            self.pub = Publisher(host=message_host, port=message_port, outbound_queue=self.msg_queue)
+            self.message_topic = message_topic
+            self.logger.info(f"[Controller] Publisher initialized at {message_host}:{message_port}")
 
         self.__running = False
         self.__message_pump_task = None
@@ -131,10 +132,10 @@ class Controller:
                 self.logger.info("[Controller] Message pump stopped")
             self.__message_pump_task = None
         
-        if self.zmq_broker:
-            self.zmq_broker.close()
-            self.logger.info("[Controller] ZMQ Broker closed")
-        
+        if self.pub:
+            await self.pub.close()
+            self.logger.info("[Controller] Publisher closed")
+
         self.logger.info("[Controller] Shutdown complete")
     
     async def message_pump(self):
@@ -148,16 +149,16 @@ class Controller:
                 try:
                     # use wait_for to add a timeout to recv_match
                     try:
-                        msg = await asyncio.wait_for(
+                        mav_msg = await asyncio.wait_for(
                             loop.run_in_executor(None, lambda: self.master.recv_match(blocking=True)),
                             timeout=5.0,
                         )
                     except asyncio.TimeoutError:
-                        msg = None
-                    if msg:
-                        await self.msg_queue.put(msg)
-                        if self.zmq_broker:
-                            self.zmq_broker.publish(self.zmq_topic, msg)
+                        mav_msg = None
+                    if mav_msg:
+                        await self.msg_queue.put(mav_msg)
+                        msg = translate_message(mav_msg)
+                        self.pub.send(msg) if self.pub and msg else None
                     else:
                         await asyncio.sleep(0.01)
 

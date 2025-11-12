@@ -7,4 +7,4 @@ colorlog
 logging
 datetime
 asyncio
-pyzmq
+uas-messenger>=1.1.0

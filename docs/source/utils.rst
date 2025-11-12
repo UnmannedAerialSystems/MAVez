@@ -9,14 +9,6 @@ Enums
    :show-inheritance:
    :undoc-members:
 
-ZMQ Broker
-----------
-
-.. automodule:: MAVez.zmq_broker
-   :members:
-   :show-inheritance:
-   :undoc-members:
-
 Safe Logger
 -----------
 

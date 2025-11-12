@@ -1,11 +1,13 @@
 # translate_message.py
-# version: 1.0.0
+# version: 2.0.0
 # Original Author: Theodore Tasman
 # Creation Date: 2025-09-24
 # Last Modified: 2025-09-24
 # Organization: PSU UAS
 
-def translate_message(csvm):
+from uas_messenger.message import Message
+
+def translate_message(csvm, topic: str = "") -> Message | None:
     """
     Convert a CSVMessage object to Python dictionary.
     
@@ -13,13 +15,13 @@ def translate_message(csvm):
         csvm (CSVMessage): The CSVMessage object to convert.
         
     Returns:
-        dict: A dictionary representation of the CSVMessage.
+        Message: a uas_messenger Message object containing the data from the CSVMessage. If the message type is 'UNKNOWN', returns None.
     """
     if csvm.get_type().startswith('UNKNOWN'):
-        return {}
-    
+        return None
+
     fields = csvm.get_fieldnames()
 
-    dict_message = {field: getattr(csvm, field) for field in fields}
+    data = {field: getattr(csvm, field) for field in fields}
 
-    return dict_message
+    return Message(topic=f"{topic}_{csvm.get_type()}" if topic else csvm.get_type(), header=data)
