@@ -157,7 +157,7 @@ class Controller:
                         mav_msg = None
                     if mav_msg:
                         await self.msg_queue.put(mav_msg)
-                        msg = translate_message(mav_msg)
+                        msg = translate_message(mav_msg, self.message_topic)
                         self.pub.send(msg) if self.pub and msg else None
                     else:
                         await asyncio.sleep(0.01)
@@ -662,7 +662,7 @@ class Controller:
 
     async def receive_gps(self) -> int | Coordinate:
         """
-        Wait for a gps_raw_int message from ardupilot.
+        Wait for a GLOBAL_POSITION_INT message from ardupilot.
 
         Args:
             timeout (int): The timeout duration in seconds. Default is 5 seconds.

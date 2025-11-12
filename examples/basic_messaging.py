@@ -21,7 +21,7 @@ async def main():
                                                     logger=logger, 
                                                     message_host='127.0.0.1', 
                                                     message_port=5555, 
-                                                    message_topic='') as controller:
+                                                    message_topic='mavlink') as controller:
 
         await controller.set_geofence("./examples/sample_missions/sample_fence.txt")
 
