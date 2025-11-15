@@ -33,7 +33,7 @@ class Coordinate:
 
     """
 
-    def __init__(self, lat: float | int, lon: float | int, alt: float | int, use_int: bool = True, heading: float | None = None):
+    def __init__(self, lat: float | int, lon: float | int, alt: float | int, use_int: bool = True, heading: float | None = None, timestamp: int = 0):
         
         self.lat = lat
         self.lon = lon
@@ -49,13 +49,16 @@ class Coordinate:
         self.is_int = use_int
 
         self.heading = heading
+        self.timestamp = timestamp
 
     def __str__(self):
-        return (
-            f"{self.lat},{self.lon},{self.alt},{self.heading}"
-            if self.heading is not None
-            else f"{self.lat},{self.lon},{self.alt}"
-        )
+        out = f"{self.lat}, {self.lon}, {self.alt}"
+        if self.heading is not None:
+            out += f", heading: {self.heading}"
+        if self.timestamp is not None:
+            out += f", timestamp: {self.timestamp}"
+
+        return out
 
     __repr__ = __str__
 

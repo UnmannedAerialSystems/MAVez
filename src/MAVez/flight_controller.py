@@ -45,8 +45,8 @@ class FlightController(Controller):
                  baud: int=57600, 
                  logger: Logger|None=None, 
                  craft_type: Literal["plane", "copter"]="plane", 
-                 message_host: str|None=None, 
-                 message_port: int|None=None, 
+                 message_host: str="127.0.0.1", 
+                 message_port: int=5555, 
                  message_topic: str="") -> None:
         # Initialize the controller
         super().__init__(connection_string, logger=logger, baud=baud, message_host=message_host, message_port=message_port, message_topic=message_topic)
@@ -394,3 +394,5 @@ class FlightController(Controller):
         
         self.logger.info("[Flight] Geofence set and enabled")
         return 0
+    
+    
