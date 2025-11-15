@@ -1,8 +1,8 @@
 # mav_controller.py
-# version: 3.4.0
+# version: 3.5.0
 # Author: Theodore Tasman
 # Creation Date: 2025-01-30
-# Last Modified: 2025-10-07
+# Last Modified: 2025-11-14
 # Organization: PSU UAS
 
 """
