@@ -50,7 +50,8 @@ class Controller:
                  logger: Logger | None = None, 
                  message_host: str = "127.0.0.1", 
                  message_port: int = 5555, 
-                 message_topic: str = "") -> None:
+                 message_topic: str = "",
+                 timesync: bool = False) -> None:
         """
         Initialize the controller.
 
@@ -58,7 +59,10 @@ class Controller:
             connection_string (str): The connection string for ardupilot.
             baud (int): The baud rate for the connection.
             logger: Logger instance for logging messages (optional).
-
+            message_host (str): The host for the messaging system. Default is "127.0.0.1".
+            message_port (int): The port for the messaging system. Default is 5555.
+            message_topic (str): The topic prefix for the messaging system. Default is "".
+            timesync (bool): Whether to enable time synchronization. Default is False.
         Raises:
             ConnectionError: If the connection to ardupilot fails.
 
@@ -92,6 +96,7 @@ class Controller:
         self.__clock_sync_task = None
 
         # clock sync variables
+        self.timesync = timesync
         self.rtt = None
         self.offset = None
         self.last_sync_time = 0
@@ -129,11 +134,12 @@ class Controller:
             self.__running = True
             self.__message_pump_task = asyncio.create_task(self.message_pump())
             self.logger.debug("[Controller] Message pump started")
-        await self.sync_clocks()
-        if self.__clock_sync_task is None:
-            self.__clock_sync_task = asyncio.create_task(self.clock_synchronizer())
-            self.logger.debug("[Controller] Clock synchronizer started")
-
+        
+        if self.timesync:
+            await self.sync_clocks()
+            if self.__clock_sync_task is None:
+                self.__clock_sync_task = asyncio.create_task(self.clock_synchronizer())
+                self.logger.debug("[Controller] Clock synchronizer started")
     async def stop(self):
         """
         Stop the controller by cancelling the message pump.
@@ -314,18 +320,18 @@ class Controller:
         self.logger.debug(f"[Controller] Sent mission count: {count}")
         return 0
 
-    async def receive_mission_item_reached(self) -> int:
+    async def receive_mission_item_reached(self, timeout: int = 240) -> int:
         """
         Wait for a mission item reached message from ardupilot.
 
         Args:
-            timeout (int): The timeout duration in seconds. Default is 5 seconds.
+            timeout (int): The timeout duration in seconds. Default is 240 seconds.
 
         Returns:
             int: The sequence number of the reached mission item if received, TIMEOUT_ERROR (101) if the response timed out.
         """
 
-        message = await self.receive_message("MISSION_ITEM_REACHED")
+        message = await self.receive_message("MISSION_ITEM_REACHED", timeout=timeout)
         if message == self.TIMEOUT_ERROR:
             self.logger.error("[Controller] Receive mission item reached timed out")
             return self.TIMEOUT_ERROR
@@ -825,7 +831,7 @@ class Controller:
         if message == self.TIMEOUT_ERROR:
             self.logger.error("[Controller] Disable message interval command timed out")
             return self.TIMEOUT_ERROR
-        elif message.get('result') and message['result'] in enums.MAV_RESULTS.keys():
+        elif message.get('result') is not None and message['result'] in enums.MAV_RESULTS.keys():
             if message['result'] == 0:
                 self.logger.info(f"[Controller] Disabled message interval for {message_type}")
                 return 0
@@ -885,7 +891,7 @@ class Controller:
         if message == self.TIMEOUT_ERROR:
             self.logger.error("[Controller] Set current mission index command timed out")
             return self.TIMEOUT_ERROR
-        elif message.get('result') and message['result'] in enums.MAV_RESULTS.keys():
+        elif message.get('result') is not None and message['result'] in enums.MAV_RESULTS.keys():
             if message['result'] == 0:
                 self.logger.debug(f"[Controller] Set current mission index to {index}")
                 return 0
@@ -992,7 +998,7 @@ class Controller:
         if message == self.TIMEOUT_ERROR:
             self.logger.error("[Controller] Receive timesync data timed out")
             return self.TIMEOUT_ERROR
-        elif message.get('tc1') and message.get('ts1'):
+        elif message.get('tc1') is not None and message.get('ts1') is not None:
             return message
         else:
             self.logger.error("[Controller] Bad response received for timesync data")
@@ -1017,11 +1023,11 @@ class Controller:
             ts4 = time.monotonic_ns()
 
             if isinstance(response, int):
-                self.logger.error("[Flight] Failed to sync clocks.")
+                self.logger.error("[Controller] Failed to sync clocks.")
                 return response
 
             if response['ts1'] != ts1:
-                # self.logger.warning("[Flight] Received unintended timestamp.")
+                self.logger.debug("[Controller] Received unintended timestamp.")
                 continue
 
             rtt = ts4 - ts1
@@ -1057,7 +1063,7 @@ class Controller:
         await self.msg_queue.put(timesync_update)
 
         self.last_sync_time = time.time()
-        self.logger.debug(f"[Flight] Clocks synced successfully. RTT: {self.rtt}, Offset: {self.offset}")
+        self.logger.debug(f"[Controller] Clocks synced successfully. RTT: {self.rtt}, Offset: {self.offset}")
         return 0
     
     async def clock_synchronizer(self):

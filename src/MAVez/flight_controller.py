@@ -29,6 +29,7 @@ class FlightController(Controller):
         message_host (str): The host for the messaging system. Default is "127.0.0.1".
         message_port (int): The port for the messaging system. Default is 5555.
         message_topic (str): The topic prefix for the messaging system. Default is "".
+        timesync (bool): Whether to enable time synchronization. Default is False.
 
     Raises:
         ConnectionError: If the connection to ardupilot fails.
@@ -49,7 +50,8 @@ class FlightController(Controller):
                  logger: Logger|None=None, 
                  message_host: str="127.0.0.1", 
                  message_port: int=5555, 
-                 message_topic: str="") -> None:
+                 message_topic: str="",
+                 timesync: bool=False) -> None:
         # Initialize the controller
         super().__init__(connection_string, logger=logger, baud=baud, message_host=message_host, message_port=message_port, message_topic=message_topic)
 
