@@ -15,6 +15,7 @@ from pymavlink import mavutil
 from pyparsing import Any # type: ignore[import]
 from uas_messenger.publisher import Publisher
 from uas_messenger.subscriber import Subscriber
+from uas_messenger.message import Message
 from MAVez.translate_message import translate_message
 from MAVez.coordinate import Coordinate
 from MAVez.safe_logger import SafeLogger
@@ -29,6 +30,9 @@ class Controller:
         connection_string (str): The connection string for ardupilot. Default is "tcp:127.0.0.1:5762" used for SITL.
         baud (int): The baud rate for the connection. Default is 57600.
         logger: Logger instance for logging messages (optional).
+        message_host (str): The host for the messaging system. Default is "127.0.0.1".
+        message_port (int): The port for the messaging system. Default is 5555.
+        message_topic (str): The topic prefix for the messaging system. Default is "".
 
     Raises:
         ConnectionError: If the connection to ardupilot fails.
@@ -124,11 +128,11 @@ class Controller:
         if self.__message_pump_task is None:
             self.__running = True
             self.__message_pump_task = asyncio.create_task(self.message_pump())
-            self.logger.info("[Controller] Message pump started")
+            self.logger.debug("[Controller] Message pump started")
         await self.sync_clocks()
         if self.__clock_sync_task is None:
             self.__clock_sync_task = asyncio.create_task(self.clock_synchronizer())
-            self.logger.info("[Controller] Clock synchronizer started")
+            self.logger.debug("[Controller] Clock synchronizer started")
 
     async def stop(self):
         """
@@ -145,7 +149,7 @@ class Controller:
             try:
                 await self.__message_pump_task
             except asyncio.CancelledError:
-                self.logger.info("[Controller] Message pump stopped")
+                self.logger.debug("[Controller] Message pump stopped")
             self.__message_pump_task = None
         
         if self.__clock_sync_task:
@@ -153,12 +157,12 @@ class Controller:
             try:
                 await self.__clock_sync_task
             except asyncio.CancelledError:
-                self.logger.info("[Controller] Clock synchronizer stopped")
+                self.logger.debug("[Controller] Clock synchronizer stopped")
             self.__clock_sync_task = None
 
         if self.pub:
             await self.pub.close()
-            self.logger.info("[Controller] Publisher closed")
+            self.logger.debug("[Controller] Publisher closed")
 
         self.logger.info("[Controller] Shutdown complete")
     
@@ -167,6 +171,8 @@ class Controller:
         Continuously read MAVLink messages and push them into a queue.
         """
         loop = asyncio.get_running_loop()
+        if self.pub:
+            self.pub.start()
         try:
             while self.__running:
                 try:
@@ -179,9 +185,9 @@ class Controller:
                     except asyncio.TimeoutError:
                         mav_msg = None
                     if mav_msg:
-                        await self.msg_queue.put(mav_msg)
                         msg = translate_message(mav_msg, self.message_topic)
-                        self.pub.send(msg) if self.pub and msg else None
+                        if msg:
+                            await self.msg_queue.put(msg)
                     else:
                         await asyncio.sleep(0.01)
 
@@ -190,9 +196,11 @@ class Controller:
         
         # Handle shutdown gracefully
         except asyncio.CancelledError:
-            self.logger.info("[Controller] Message pump cancelled")
+            self.logger.debug("[Controller] Message pump cancelled")
         finally:
-            self.logger.info("[Controller] Message pump stopped")
+            self.logger.debug("[Controller] Message pump stopped")
+            if self.pub:
+                await self.pub.close()
 
     async def __aenter__(self):
         await self.start()
@@ -242,7 +250,7 @@ class Controller:
             self.logger.error("[Controller] Receive mission request timed out")
             return self.TIMEOUT_ERROR
         elif message.get('seq') is not None:
-            self.logger.info(f"[Controller] Received mission request for index: {message['seq']}")
+            self.logger.debug(f"[Controller] Received mission request for index: {message['seq']}")
             return message['seq'] if message['seq'] is not None else self.BAD_RESPONSE_ERROR
         else:
             self.logger.error("[Controller] Bad response received for mission request")
@@ -264,7 +272,7 @@ class Controller:
             return self.TIMEOUT_ERROR
         elif message.get('type') is not None and message['type'] in enums.MAV_MISSION_RESULT.keys():
             if message['type'] == 0:  # MAV_MISSION_ACCEPTED
-                self.logger.info("[Controller] Received mission ack: MAV_MISSION_ACCEPTED")
+                self.logger.debug("[Controller] Received mission ack: MAV_MISSION_ACCEPTED")
                 return 0
             else:
                 self.logger.error(f"[Controller] Received mission ack with error: {enums.get_mav_mission_result_string(message['type'])}")
@@ -303,7 +311,7 @@ class Controller:
             count,  # count
             mission_type,  # mission_type
         )
-        self.logger.info(f"[Controller] Sent mission count: {count}")
+        self.logger.debug(f"[Controller] Sent mission count: {count}")
         return 0
 
     async def receive_mission_item_reached(self) -> int:
@@ -322,7 +330,7 @@ class Controller:
             self.logger.error("[Controller] Receive mission item reached timed out")
             return self.TIMEOUT_ERROR
         elif message.get('seq') is not None:
-            self.logger.info(f"[Controller] Received mission item reached: {message['seq']}")
+            self.logger.debug(f"[Controller] Received mission item reached: {message['seq']}")
             return message['seq'] if message['seq'] is not None else self.BAD_RESPONSE_ERROR
         else:
             self.logger.error("[Controller] Bad response received for mission item reached")
@@ -665,7 +673,7 @@ class Controller:
             self.logger.error("[Controller] Receive channel input timed out")
             return self.TIMEOUT_ERROR
         elif message.get('chancount') is not None:
-            self.logger.info(f"[Controller] Received channel input from {message['chancount']} channels")
+            self.logger.debug(f"[Controller] Received channel input from {message['chancount']} channels")
             return message if message['chancount'] is not None else self.BAD_RESPONSE_ERROR
         else:
             self.logger.error("[Controller] Bad response received for channel input")
@@ -686,7 +694,7 @@ class Controller:
         if message == self.TIMEOUT_ERROR:
             self.logger.error("[Controller] Receive wind data timed out")
             return self.TIMEOUT_ERROR
-        self.logger.info("[Controller] Received wind data")
+        self.logger.debug("[Controller] Received wind data")
         return message
 
     async def receive_gps(self) -> int | Coordinate:
@@ -705,7 +713,7 @@ class Controller:
             self.logger.error("[Controller] Receive GPS data timed out")
             return self.TIMEOUT_ERROR
         elif message.get('lat') is not None and message.get('lon') is not None and message.get('alt') is not None and message.get('hdg') is not None:
-            self.logger.info(f"[Controller] Received GPS data from {message['lat']}, {message['lon']}, {message['alt']}, {message['hdg']}")
+            self.logger.debug(f"[Controller] Received GPS data from {message['lat']}, {message['lon']}, {message['alt']}, {message['hdg']}")
             if message is not None:
                 return Coordinate(
                     message['lat'],
@@ -735,7 +743,7 @@ class Controller:
             self.logger.error("[Controller] Receive landing status timed out")
             return self.TIMEOUT_ERROR
         elif message.get('landed_state') is not None and message['landed_state'] in enums.MAV_LANDED_STATE.keys():
-            self.logger.info(f"[Controller] Received landing status: {enums.get_mav_landed_state_string(message['landed_state'])}")
+            self.logger.debug(f"[Controller] Received landing status: {enums.get_mav_landed_state_string(message['landed_state'])}")
             return message['landed_state'] if message['landed_state'] is not None else self.BAD_RESPONSE_ERROR
         else:
             self.logger.error("[Controller] Bad response received for landing status")
@@ -841,7 +849,7 @@ class Controller:
             self.logger.error("[Controller] Receive current mission index timed out")
             return self.TIMEOUT_ERROR
         elif message.get('seq') is not None:
-            self.logger.info(f"[Controller] Current mission index: {message['seq']}")
+            self.logger.debug(f"[Controller] Current mission index: {message['seq']}")
             return message['seq'] if message['seq'] is not None else self.BAD_RESPONSE_ERROR
         else:
             self.logger.error("[Controller] Bad response received for mission item reached")
@@ -879,7 +887,7 @@ class Controller:
             return self.TIMEOUT_ERROR
         elif message.get('result') and message['result'] in enums.MAV_RESULTS.keys():
             if message['result'] == 0:
-                self.logger.info(f"[Controller] Set current mission index to {index}")
+                self.logger.debug(f"[Controller] Set current mission index to {index}")
                 return 0
             else:
                 self.logger.error(f"[Controller] Failed to set current mission index: {enums.get_mav_result_string(message['result'])}")
@@ -922,7 +930,7 @@ class Controller:
             return self.TIMEOUT_ERROR
         elif message.get('result') and message['result'] in enums.MAV_RESULTS.keys():
             if message['result'] == 0:
-                self.logger.info(f"[Controller] Started mission from {start_index} to {end_index}")
+                self.logger.debug(f"[Controller] Started mission from {start_index} to {end_index}")
                 return 0
             else:
                 self.logger.error(f"[Controller] Failed to start mission: {enums.get_mav_result_string(message['result'])}")
@@ -947,7 +955,7 @@ class Controller:
             self.logger.error("[Controller] Receive attitude data timed out")
             return self.TIMEOUT_ERROR
         elif message.get('roll') is not None and message.get('pitch') is not None and message.get('yaw') is not None:
-            self.logger.info(f"[Controller] Received attitude data: roll={message['roll']}, pitch={message['pitch']}, yaw={message['yaw']}")
+            self.logger.debug(f"[Controller] Received attitude data: roll={message['roll']}, pitch={message['pitch']}, yaw={message['yaw']}")
             return message
         else:
             self.logger.error("[Controller] Bad response received for attitude data")
@@ -956,6 +964,9 @@ class Controller:
     def request_timesync(self, current_time: int) -> int:
         """
         Request a timesync message from ardupilot.
+
+        Args:
+            current_time (int): The current time in nanoseconds.
 
         Returns:
             int: 0 if the timesync request was sent successfully.
@@ -994,9 +1005,9 @@ class Controller:
         Returns:
             int: 0 if the clocks were synced successfully, otherwise an error code.
         """
-        self.logger.info("[Flight] Syncing clocks...")
+        self.logger.debug("[Flight] Syncing clocks...")
 
-        NUM_SAMPLES = 5
+        NUM_SAMPLES = 10
         i = 0
         while i < NUM_SAMPLES:
             ts1 = time.monotonic_ns()
@@ -1036,8 +1047,17 @@ class Controller:
 
             i += 1
 
+        timesync_update = Message(
+            topic=f"{self.message_topic}_timesync_update" if self.message_topic else "timesync_update", 
+            header={
+                "offset": self.offset,
+                "rtt": self.rtt,
+            }
+        )
+        await self.msg_queue.put(timesync_update)
+
         self.last_sync_time = time.time()
-        self.logger.info(f"[Flight] Clocks synced successfully. RTT: {self.rtt}, Offset: {self.offset}")
+        self.logger.debug(f"[Flight] Clocks synced successfully. RTT: {self.rtt}, Offset: {self.offset}")
         return 0
     
     async def clock_synchronizer(self):

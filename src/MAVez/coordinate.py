@@ -27,10 +27,10 @@ class Coordinate:
         dms (bool): If True, the coordinates are in degrees, minutes, seconds format. Defaults to False.
         use_int (bool): If True, the coordinates are stored as integers. Defaults to True.
         heading (float | None): Heading in degrees. Defaults to None.
+        timestamp (int): Timestamp associated with the coordinate. Defaults to 0.
 
     Returns:
         Coordinate: An instance of the Coordinate class.
-
     """
 
     def __init__(self, lat: float | int, lon: float | int, alt: float | int, use_int: bool = True, heading: float | None = None, timestamp: int = 0):
