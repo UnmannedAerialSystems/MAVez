@@ -241,7 +241,7 @@
 <p>This module is responsible for controlling ardupilot.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="MAVez.controller.Controller">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">MAVez.controller.</span></span><span class="sig-name descname"><span class="pre">Controller</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">connection_string</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'tcp:127.0.0.1:5762'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">baud</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">57600</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_host</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_topic</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MAVez.controller.Controller" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">MAVez.controller.</span></span><span class="sig-name descname"><span class="pre">Controller</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">connection_string</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'tcp:127.0.0.1:5762'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">baud</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">57600</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_host</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'127.0.0.1'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5555</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_topic</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timesync</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MAVez.controller.Controller" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Controller class for atomic MAVLink communication with ardupilot.</p>
 <dl class="field-list simple">
@@ -250,6 +250,9 @@
 <li><p><strong>connection_string</strong> (<em>str</em>) – The connection string for ardupilot. Default is “<a class="reference external" href="tcp:127.0.0.1:5762">tcp:127.0.0.1:5762</a>” used for SITL.</p></li>
 <li><p><strong>baud</strong> (<em>int</em>) – The baud rate for the connection. Default is 57600.</p></li>
 <li><p><strong>logger</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Logger</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Logger instance for logging messages (optional).</p></li>
+<li><p><strong>message_host</strong> (<em>str</em>) – The host for the messaging system. Default is “127.0.0.1”.</p></li>
+<li><p><strong>message_port</strong> (<em>int</em>) – The port for the messaging system. Default is 5555.</p></li>
+<li><p><strong>message_topic</strong> (<em>str</em>) – The topic prefix for the messaging system. Default is “”.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
@@ -291,6 +294,12 @@
 <dd class="field-odd"><p>int</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="MAVez.controller.Controller.clock_synchronizer">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">clock_synchronizer</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#MAVez.controller.Controller.clock_synchronizer" title="Link to this definition">¶</a></dt>
+<dd><p>Periodically sync the flight controller clock with the system clock.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -505,11 +514,11 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="MAVez.controller.Controller.receive_mission_item_reached">
-<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">receive_mission_item_reached</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#MAVez.controller.Controller.receive_mission_item_reached" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">receive_mission_item_reached</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">240</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MAVez.controller.Controller.receive_mission_item_reached" title="Link to this definition">¶</a></dt>
 <dd><p>Wait for a mission item reached message from ardupilot.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>timeout</strong> (<em>int</em>) – The timeout duration in seconds. Default is 5 seconds.</p>
+<dd class="field-odd"><p><strong>timeout</strong> (<em>int</em>) – The timeout duration in seconds. Default is 240 seconds.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>The sequence number of the reached mission item if received, TIMEOUT_ERROR (101) if the response timed out.</p>
@@ -538,6 +547,23 @@
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="MAVez.controller.Controller.receive_timesync">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">receive_timesync</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MAVez.controller.Controller.receive_timesync" title="Link to this definition">¶</a></dt>
+<dd><p>Wait for a timesync message from ardupilot.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>timeout</strong> (<em>int</em>) – The timeout duration in seconds. Default is 5 seconds.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>response if a timesync message was received, TIMEOUT_ERROR (101) if the response timed out.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="MAVez.controller.Controller.receive_wind">
 <em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">receive_wind</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#MAVez.controller.Controller.receive_wind" title="Link to this definition">¶</a></dt>
 <dd><p>Wait for a wind_cov message from ardupilot.</p>
@@ -550,6 +576,23 @@
 </dd>
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>response if a wind_cov message was received, 101 if the response timed out</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="MAVez.controller.Controller.request_timesync">
+<span class="sig-name descname"><span class="pre">request_timesync</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_time</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MAVez.controller.Controller.request_timesync" title="Link to this definition">¶</a></dt>
+<dd><p>Request a timesync message from ardupilot.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>current_time</strong> (<em>int</em>) – The current time in nanoseconds.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>0 if the timesync request was sent successfully.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
 </dd>
 </dl>
 </dd></dl>
@@ -621,7 +664,7 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="MAVez.controller.Controller.set_home">
-<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">set_home</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">home_coordinate=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MAVez.controller.Controller.set_home" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">set_home</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">home_coordinate=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timestamp:</span> <span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MAVez.controller.Controller.set_home" title="Link to this definition">¶</a></dt>
 <dd><p>Set the home location.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -736,6 +779,20 @@
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="MAVez.controller.Controller.sync_clocks">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sync_clocks</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#MAVez.controller.Controller.sync_clocks" title="Link to this definition">¶</a></dt>
+<dd><p>Sync the flight controller clock with the system clock.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>0 if the clocks were synced successfully, otherwise an error code.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 </section>
@@ -744,7 +801,7 @@
 <p>This module is responsible for managing the flight of ardupilot.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="MAVez.flight_controller.FlightController">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">MAVez.flight_controller.</span></span><span class="sig-name descname"><span class="pre">FlightController</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">connection_string</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'tcp:127.0.0.1:5762'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">baud</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">57600</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">craft_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'plane'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_host</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_topic</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MAVez.flight_controller.FlightController" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">MAVez.flight_controller.</span></span><span class="sig-name descname"><span class="pre">FlightController</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">connection_string</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'tcp:127.0.0.1:5762'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">baud</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">57600</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_host</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'127.0.0.1'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5555</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_topic</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timesync</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MAVez.flight_controller.FlightController" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#MAVez.controller.Controller" title="MAVez.controller.Controller"><code class="xref py py-class docutils literal notranslate"><span class="pre">Controller</span></code></a></p>
 <p>Manages the flight plan for ardupilot. Extends the Controller class to provide complex flight functionalities.</p>
 <dl class="field-list simple">
@@ -753,7 +810,11 @@
 <li><p><strong>connection_string</strong> (<em>str</em>) – The connection string to ardupilot.</p></li>
 <li><p><strong>baud</strong> (<em>int</em>) – The baud rate for the connection. Default is 57600.</p></li>
 <li><p><strong>logger</strong> (<em>Logger</em><em> | </em><em>None</em>) – Optional logger for logging flight events.</p></li>
-<li><p><strong>craft_type</strong> (<em>str</em>) – The type of craft (“plane” or “copter”). Default is “plane”.</p></li>
+<li><p><strong>message_host</strong> (<em>str</em>) – The host for messaging.</p></li>
+<li><p><strong>message_host</strong> – The host for the messaging system. Default is “127.0.0.1”.</p></li>
+<li><p><strong>message_port</strong> (<em>int</em>) – The port for the messaging system. Default is 5555.</p></li>
+<li><p><strong>message_topic</strong> (<em>str</em>) – The topic prefix for the messaging system. Default is “”.</p></li>
+<li><p><strong>timesync</strong> (<em>bool</em>) – Whether to enable time synchronization. Default is False.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
@@ -1011,6 +1072,7 @@
 <li><a class="reference internal" href="#MAVez.controller.Controller.TIMEOUT_ERROR"><code class="docutils literal notranslate"><span class="pre">Controller.TIMEOUT_ERROR</span></code></a></li>
 <li><a class="reference internal" href="#MAVez.controller.Controller.UNKNOWN_MODE"><code class="docutils literal notranslate"><span class="pre">Controller.UNKNOWN_MODE</span></code></a></li>
 <li><a class="reference internal" href="#MAVez.controller.Controller.arm"><code class="docutils literal notranslate"><span class="pre">Controller.arm()</span></code></a></li>
+<li><a class="reference internal" href="#MAVez.controller.Controller.clock_synchronizer"><code class="docutils literal notranslate"><span class="pre">Controller.clock_synchronizer()</span></code></a></li>
 <li><a class="reference internal" href="#MAVez.controller.Controller.decode_error"><code class="docutils literal notranslate"><span class="pre">Controller.decode_error()</span></code></a></li>
 <li><a class="reference internal" href="#MAVez.controller.Controller.disable_geofence"><code class="docutils literal notranslate"><span class="pre">Controller.disable_geofence()</span></code></a></li>
 <li><a class="reference internal" href="#MAVez.controller.Controller.disable_message_interval"><code class="docutils literal notranslate"><span class="pre">Controller.disable_message_interval()</span></code></a></li>
@@ -1026,7 +1088,9 @@
 <li><a class="reference internal" href="#MAVez.controller.Controller.receive_mission_ack"><code class="docutils literal notranslate"><span class="pre">Controller.receive_mission_ack()</span></code></a></li>
 <li><a class="reference internal" href="#MAVez.controller.Controller.receive_mission_item_reached"><code class="docutils literal notranslate"><span class="pre">Controller.receive_mission_item_reached()</span></code></a></li>
 <li><a class="reference internal" href="#MAVez.controller.Controller.receive_mission_request"><code class="docutils literal notranslate"><span class="pre">Controller.receive_mission_request()</span></code></a></li>
+<li><a class="reference internal" href="#MAVez.controller.Controller.receive_timesync"><code class="docutils literal notranslate"><span class="pre">Controller.receive_timesync()</span></code></a></li>
 <li><a class="reference internal" href="#MAVez.controller.Controller.receive_wind"><code class="docutils literal notranslate"><span class="pre">Controller.receive_wind()</span></code></a></li>
+<li><a class="reference internal" href="#MAVez.controller.Controller.request_timesync"><code class="docutils literal notranslate"><span class="pre">Controller.request_timesync()</span></code></a></li>
 <li><a class="reference internal" href="#MAVez.controller.Controller.send_clear_mission"><code class="docutils literal notranslate"><span class="pre">Controller.send_clear_mission()</span></code></a></li>
 <li><a class="reference internal" href="#MAVez.controller.Controller.send_message"><code class="docutils literal notranslate"><span class="pre">Controller.send_message()</span></code></a></li>
 <li><a class="reference internal" href="#MAVez.controller.Controller.send_mission_count"><code class="docutils literal notranslate"><span class="pre">Controller.send_mission_count()</span></code></a></li>
@@ -1038,6 +1102,7 @@
 <li><a class="reference internal" href="#MAVez.controller.Controller.start"><code class="docutils literal notranslate"><span class="pre">Controller.start()</span></code></a></li>
 <li><a class="reference internal" href="#MAVez.controller.Controller.start_mission"><code class="docutils literal notranslate"><span class="pre">Controller.start_mission()</span></code></a></li>
 <li><a class="reference internal" href="#MAVez.controller.Controller.stop"><code class="docutils literal notranslate"><span class="pre">Controller.stop()</span></code></a></li>
+<li><a class="reference internal" href="#MAVez.controller.Controller.sync_clocks"><code class="docutils literal notranslate"><span class="pre">Controller.sync_clocks()</span></code></a></li>
 </ul>
 </li>
 </ul>
