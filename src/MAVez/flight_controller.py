@@ -1,8 +1,8 @@
 # flight_controller.py
-# version: 3.0.1
+# version: 3.1.0
 # Original Author: Theodore Tasman
 # Creation Date: 2025-01-30
-# Last Modified: 2025-09-24
+# Last Modified: 2025-11-14
 # Organization: PSU UAS
 
 """
@@ -25,7 +25,11 @@ class FlightController(Controller):
         connection_string (str): The connection string to ardupilot.
         baud (int): The baud rate for the connection. Default is 57600.
         logger (Logger | None): Optional logger for logging flight events.
-        craft_type (str): The type of craft ("plane" or "copter"). Default is "plane".
+        message_host (str): The host for messaging.
+        message_host (str): The host for the messaging system. Default is "127.0.0.1".
+        message_port (int): The port for the messaging system. Default is 5555.
+        message_topic (str): The topic prefix for the messaging system. Default is "".
+        timesync (bool): Whether to enable time synchronization. Default is False.
 
     Raises:
         ConnectionError: If the connection to ardupilot fails.
@@ -44,10 +48,10 @@ class FlightController(Controller):
     def __init__(self, connection_string: str="tcp:127.0.0.1:5762", 
                  baud: int=57600, 
                  logger: Logger|None=None, 
-                 craft_type: Literal["plane", "copter"]="plane", 
-                 message_host: str|None=None, 
-                 message_port: int|None=None, 
-                 message_topic: str="") -> None:
+                 message_host: str="127.0.0.1", 
+                 message_port: int=5555, 
+                 message_topic: str="",
+                 timesync: bool=False) -> None:
         # Initialize the controller
         super().__init__(connection_string, logger=logger, baud=baud, message_host=message_host, message_port=message_port, message_topic=message_topic)
 
@@ -55,8 +59,6 @@ class FlightController(Controller):
 
         # initialize mission queue
         self.mission_queue = []
-
-        self.craft_type = craft_type
 
     def decode_error(self, error_code: int) -> str:
         """
@@ -169,7 +171,7 @@ class FlightController(Controller):
         """
         latest_waypoint = -1
 
-        self.logger.info(f"[Flight] Waiting for waypoint {target} to be reached")
+        self.logger.debug(f"[Flight] Waiting for waypoint {target} to be reached")
 
         while latest_waypoint < target:
             response = await self.receive_mission_item_reached()
@@ -295,7 +297,7 @@ class FlightController(Controller):
             int: 0 if the jump was successful, otherwise an error code.
         """
 
-        self.logger.info("[Flight] Waiting for current mission index")
+        self.logger.debug("[Flight] Waiting for current mission index")
         # wait for the current mission target to be received (should be broadcast by default)
         response = await self.receive_current_mission_index()
         if response == self.TIMEOUT_ERROR:
@@ -327,7 +329,7 @@ class FlightController(Controller):
         # set the channel to be received
         channel = f"chan{channel}_raw"
 
-        self.logger.info(f"[Flight] Waiting for channel {channel} to be set to {value}")
+        self.logger.debug(f"[Flight] Waiting for channel {channel} to be set to {value}")
 
         # only wait for the channel to be set for a certain amount of time
         while time.time() - start_time < wait_time:
@@ -385,12 +387,14 @@ class FlightController(Controller):
             self.logger.critical("[Flight] Geofence failed, mission not sent")
             return response
 
-        self.logger.info("[Flight] Geofence sent")
+        self.logger.debug("[Flight] Geofence sent")
 
         response = await self.enable_geofence()
         if response:
             self.logger.critical("[Flight] Geofence failed, could not be enabled")
             return response
         
-        self.logger.info("[Flight] Geofence set and enabled")
+        self.logger.debug("[Flight] Geofence set and enabled")
         return 0
+    
+    

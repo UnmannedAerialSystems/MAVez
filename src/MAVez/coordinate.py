@@ -1,8 +1,8 @@
 # coordinate.py
-# version: 1.1.0
+# version: 1.2.0
 # Author: Theodore Tasman
 # Creation Date: 2025-01-30
-# Last Modified: 2025-09-15
+# Last Modified: 2025-11-14
 # Organization: PSU UAS
 
 """
@@ -27,13 +27,13 @@ class Coordinate:
         dms (bool): If True, the coordinates are in degrees, minutes, seconds format. Defaults to False.
         use_int (bool): If True, the coordinates are stored as integers. Defaults to True.
         heading (float | None): Heading in degrees. Defaults to None.
+        timestamp (int): Timestamp associated with the coordinate. Defaults to 0.
 
     Returns:
         Coordinate: An instance of the Coordinate class.
-
     """
 
-    def __init__(self, lat: float | int, lon: float | int, alt: float | int, use_int: bool = True, heading: float | None = None):
+    def __init__(self, lat: float | int, lon: float | int, alt: float | int, use_int: bool = True, heading: float | None = None, timestamp: int = 0):
         
         self.lat = lat
         self.lon = lon
@@ -49,13 +49,16 @@ class Coordinate:
         self.is_int = use_int
 
         self.heading = heading
+        self.timestamp = timestamp
 
     def __str__(self):
-        return (
-            f"{self.lat},{self.lon},{self.alt},{self.heading}"
-            if self.heading is not None
-            else f"{self.lat},{self.lon},{self.alt}"
-        )
+        out = f"{self.lat}, {self.lon}, {self.alt}"
+        if self.heading is not None:
+            out += f", heading: {self.heading}"
+        if self.timestamp is not None:
+            out += f", timestamp: {self.timestamp}"
+
+        return out
 
     __repr__ = __str__
 
