@@ -12,7 +12,7 @@ Represents a geographic coordinate with latitude, longitude, and altitude.
 import math
 from typing import Tuple, Union
 
-EARTH_RADIUS = 6378137  # in meters
+EARTH_RADIUS = 6378  # in thousands of meters
 METERS_PER_DEGREE = EARTH_RADIUS / 180 * math.pi
 
 
@@ -112,8 +112,8 @@ class Coordinate:
         """
         # ensure both self and other are in decimal degrees
         if self.is_int:
-            self_lat = self.lat / 1e7
-            self_lon = self.lon / 1e7
+            self_lat = self.lat / 1e6
+            self_lon = self.lon / 1e6
         else:
             self_lat = self.lat
             self_lon = self.lon
@@ -144,7 +144,7 @@ class Coordinate:
             * math.sin(dlon / 2) ** 2
         )
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-        distance = EARTH_RADIUS * c
+        distance = METERS_PER_DEGREE * c
         return distance
 
     def bearing_to(self, other: "Coordinate") -> float:
