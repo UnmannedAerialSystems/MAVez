@@ -1,6 +1,6 @@
 # coordinate.py
-# version: 1.2.0
-# Author: Theodore Tasman
+# version: 1.2.1
+# Authors: Theodore Tasman
 # Creation Date: 2025-01-30
 # Last Modified: 2025-11-14
 # Organization: PSU UAS
@@ -12,7 +12,7 @@ Represents a geographic coordinate with latitude, longitude, and altitude.
 import math
 from typing import Tuple, Union
 
-EARTH_RADIUS = 6378  # in thousands of meters
+EARTH_RADIUS = 6378137  # in meters
 METERS_PER_DEGREE = EARTH_RADIUS / 180 * math.pi
 
 
@@ -42,9 +42,13 @@ class Coordinate:
         self.alt = alt
 
         # if integer is True, convert the coordinates to integers
-        if use_int:
+        if use_int and abs(self.lat) < 90 and abs(self.lon) < 180:
             self.lat = int(self.lat * 1e7)
             self.lon = int(self.lon * 1e7)
+        
+        elif use_int is False and (abs(self.lat) > 90 or abs(self.lon) > 180):
+            self.lat = self.lat / 1e7
+            self.lon = self.lon / 1e7
 
         self.is_int = use_int
 
@@ -112,8 +116,8 @@ class Coordinate:
         """
         # ensure both self and other are in decimal degrees
         if self.is_int:
-            self_lat = self.lat / 1e6
-            self_lon = self.lon / 1e6
+            self_lat = self.lat / 1e7
+            self_lon = self.lon / 1e7
         else:
             self_lat = self.lat
             self_lon = self.lon
@@ -144,7 +148,9 @@ class Coordinate:
             * math.sin(dlon / 2) ** 2
         )
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-        distance = METERS_PER_DEGREE * c
+
+        distance = EARTH_RADIUS * c
+
         return distance
 
     def bearing_to(self, other: "Coordinate") -> float:
@@ -173,3 +179,30 @@ class Coordinate:
         initial_bearing = math.degrees(initial_bearing)
         compass_bearing = (initial_bearing + 360) % 360
         return compass_bearing
+
+
+def main():
+    coord1 = Coordinate(-35.3632623, 149.1652377, 784.09)
+    coord2 = Coordinate(-353624199, 1491655403, 500)
+
+    print(f"Coordinate 1: {coord1}")
+    print(f"Coordinate 2: {coord2}")
+
+    distance = coord1.distance_to(coord2)
+    bearing = coord1.bearing_to(coord2)
+
+    print(f"Distance between coordinates: {distance:.2f} meters")
+    print(f"Bearing from coord1 to coord2: {bearing:.2f} degrees")
+
+    offset_coord = coord1.offset_coordinate(1000, 45)
+    print(f"Offset Coordinate (1000m at 45°): {offset_coord}")
+
+    distance = coord1.distance_to(offset_coord)
+    bearing = coord1.bearing_to(offset_coord)
+
+    print(f"Distance to Offset Coordinate: {distance:.2f} meters")
+    print(f"Bearing to Offset Coordinate: {bearing:.2f} degrees")
+
+
+if __name__ == "__main__":
+    main()
