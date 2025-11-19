@@ -1,77 +1,104 @@
+import time
 from MAVez import flight_controller
 from MAVez.safe_logger import configure_logging
 from MAVez.coordinate import Coordinate
-from uas_messenger.subscriber import Subscriber
 import asyncio
-import matplotlib.pyplot as plt
 
-logger = configure_logging()
-async def main():
-    
-    offset_lock = asyncio.Lock()
-    offset = 0
-    async def callback(msg):
-        nonlocal offset
-        async with offset_lock:
-            offset = msg.header.get('offset', None)
-        print(f"Clock offset updated: {offset} us")
+class ClockSync:
 
-    sub = Subscriber(host='127.0.0.1', port=5555, callback=callback, topics=['mavlink_timesync_update'])
-    sub.start()
-    
-
-    # Using async context manager to handle messaging setup and teardown
-    async with flight_controller.FlightController(connection_string='tcp:127.0.0.1:5762', 
+    def __init__(self):
+        self.controller = flight_controller.FlightController(connection_string='tcp:127.0.0.1:5762', 
                                                     baud=57600, 
                                                     logger=logger, 
                                                     message_host='127.0.0.1', 
                                                     message_port=5555, 
-                                                    message_topic='mavlink') as controller:
-        last_telemetry = None
-        times = []
-        offsets = []
-        jitters = []
-        await controller.set_message_interval(33, 100000)  # 10 Hz
+                                                    message_topic='',
+                                                    timesync=True)
+        
+        self.telemetry = asyncio.Queue()
+        self.clocks = asyncio.Queue()
+        self.interval_s = 1  # 0.2 seconds
+        self.rolling_diff_ms = []
+        self.avg_diff_ms = 0.0
 
-        for _ in range(50):
-            response = await controller.receive_gps()
+    async def intermittent_clock(self, ref_monotonic_ns=None):
+        interval_ns = int(self.interval_s * 1e9)
+
+        # Set initial reference time
+        if ref_monotonic_ns is None:
+            ref_monotonic_ns = time.monotonic_ns()
+
+        next_tick = ref_monotonic_ns + interval_ns
+
+        while True:
+            now = time.monotonic_ns()
+            sleep_ns = next_tick - now
+
+            if sleep_ns > 0:
+                await asyncio.sleep(sleep_ns / 1e9)
+
+            # Tick happens here
+            await self.clocks.put(next_tick)
+            print("Clock tick at:", next_tick)
+
+            # Schedule next tick
+            next_tick += interval_ns
+
+    async def read_gps_time(self):
+
+        while True:
+            response = await self.controller.receive_gps(normalize_time=True)
             if not isinstance(response, Coordinate):
                 logger.info(f"GPS reception failed with error code: {response}")
                 return
-            async with offset_lock:
-                if last_telemetry is not None:
-                    print(f"Jitter: {abs((response.timestamp * 1e6 - offset) - last_telemetry - 1e8)} us")
-                last_telemetry = response.timestamp * 1e6 - offset
-                times.append(last_telemetry)
-                offsets.append(offset)
-                jitters.append(abs((response.timestamp * 1e6 - offset) - last_telemetry - 1e8))
 
-        expected = [i * 1e8 for i in range(50)]
-        plt.scatter(x=expected, y=times, marker='o')
-        plt.xlabel('Expected Time (us)')
-        plt.ylabel('Received Time (us)')
-        plt.title('GPS Telemetry Reception Times')
-        plt.grid(True)
-        plt.show()
+            print("GPS Time:", response.timestamp)
+            await self.telemetry.put(response.timestamp)
 
-        plt.figure()
-        plt.plot(offsets)
-        plt.plot(jitters)
-        plt.xlabel('Sample Index')
-        plt.ylabel('Clock Offset (us)')
-        plt.title('Clock Offsets Over Time')
-        plt.grid(True)
-        plt.show()
+    async def matcher(self):
+        while self.telemetry.qsize() == 0:
+            await asyncio.sleep(0.1)
+        while True:
+            if self.telemetry.qsize() > 0:
+                telem = await self.telemetry.get()
+                while self.clocks.qsize() > 0:
+                    clock = await self.clocks.get()
+                    time_diff = abs(telem - clock)
+                    if time_diff < 1e8:  # within 100 ms
+                        logger.info(f"Difference: {time_diff / 1e6} ms")
+                        self.rolling_diff_ms.append(telem - clock)
+                        if len(self.rolling_diff_ms) > 4:
+                            self.rolling_diff_ms.pop(0)
+                        self.avg_diff_ms = sum(self.rolling_diff_ms) / len(self.rolling_diff_ms)
+                        print("Updated average difference (ms):", self.avg_diff_ms / 1e6)
+                        break
+            await asyncio.sleep(0.01)
 
-        plt.figure()
-        plt.plot(jitters)
-        plt.xlabel('Sample Index')
-        plt.ylabel('Jitter (us)')
-        plt.title('Jitter Over Time')
-        plt.grid(True)
-        plt.show()
+    async def run(self):
+        await self.controller.start()
+        await self.controller.set_message_interval(33, int(self.interval_s * 1e6))  # 1 Hz
 
-        await sub.close()
+        gps_task = asyncio.create_task(self.read_gps_time())
+
+
+        clock_job = asyncio.create_task(self.intermittent_clock(await self.telemetry.get()))
+        await asyncio.sleep(1)  # wait a bit to gather some GPS data
+
+        match_task = asyncio.create_task(self.matcher())
+        try:
+            await asyncio.gather(gps_task, match_task, clock_job)
+        except asyncio.CancelledError:
+            gps_task.cancel()
+            match_task.cancel()
+            clock_job.cancel()
+            raise
+
+
+logger = configure_logging()
+
+async def main():
+    clock_sync = ClockSync()
+    await clock_sync.run()
 
 
 if __name__ == "__main__":
