@@ -140,9 +140,10 @@ class Controller:
             if self.__clock_sync_task is None:
                 self.__clock_sync_task = asyncio.create_task(self.clock_synchronizer())
                 self.logger.debug("[Controller] Clock synchronizer started")
+
     async def stop(self):
         """
-        Stop the controller by cancelling the message pump.
+        Stop the controller by cancelling running tasks.
 
         Returns:
             None
@@ -175,6 +176,9 @@ class Controller:
     async def message_pump(self):
         """
         Continuously read MAVLink messages and push them into a queue.
+
+        Returns:
+            None
         """
         loop = asyncio.get_running_loop()
         if self.pub:
@@ -222,10 +226,10 @@ class Controller:
         Args:
             message_type (str): The type of MAVLink message to wait for.
             timeout (float): The timeout duration in seconds. Default is 5 seconds.
-        Returns:
-            Any: The received MAVLink message if successful, TIMEOUT_ERROR (101) if the response timed out.
-        """
 
+        Returns:
+            Dict: Dictionary representation of MAVLink message if successful, TIMEOUT_ERROR (101) if the response timed out.
+        """
         sub = Subscriber(
             host=self.message_host, 
             port=self.message_port, 
@@ -310,7 +314,6 @@ class Controller:
         Returns:
             int: 0 if the mission count was sent successfully.
         """
-
         self.master.mav.mission_count_send( # type: ignore
             0,  # target_system
             0,  # target_component
@@ -330,7 +333,6 @@ class Controller:
         Returns:
             int: The sequence number of the reached mission item if received, TIMEOUT_ERROR (101) if the response timed out.
         """
-
         message = await self.receive_message("MISSION_ITEM_REACHED", timeout=timeout)
         if message == self.TIMEOUT_ERROR:
             self.logger.error("[Controller] Receive mission item reached timed out")
@@ -349,7 +351,6 @@ class Controller:
         Returns:
             int: 0 if the mission was cleared successfully
         """
-
         self.master.waypoint_clear_all_send() # type: ignore
         self.logger.info("[Controller] Sent clear mission")
         return 0
@@ -364,7 +365,6 @@ class Controller:
         Returns:
             int: 0 if the mode was set successfully, 111 if the mode is unknown, 101 if the response timed out.
         """
-
         if mode not in self.master.mode_mapping(): # type: ignore
             self.logger.error(f"[Controller] Unknown mode: {mode}")
             return self.UNKNOWN_MODE
@@ -390,6 +390,7 @@ class Controller:
         if message == self.TIMEOUT_ERROR:
             self.logger.error("[Controller] Set mode command timed out")
             return self.TIMEOUT_ERROR
+        # TODO: verify command being acknowledged is MAV_CMD_DO_SET_MODE
         elif message.get('result') is not None and message['result'] in enums.MAV_RESULTS.keys():
             if message['result'] == 0:
                 self.logger.info(f"[Controller] Set mode to {mode}")
@@ -411,7 +412,6 @@ class Controller:
         Returns:
             int: 0 if ardupilot was armed successfully, error code if there was an error, 101 if the response timed out.
         """
-
         message = self.master.mav.command_long_encode( # type: ignore
             0,  # target_system
             0,  # target_component
@@ -432,6 +432,8 @@ class Controller:
         if message == self.TIMEOUT_ERROR:
             self.logger.error("[Controller] Arm command timed out")
             return self.TIMEOUT_ERROR
+        
+        # TODO: verify command being acknowledged is MAV_CMD_COMPONENT_ARM_DISARM
         elif message.get('result') is not None and message['result'] in enums.MAV_RESULTS.keys():
             if message['result'] == 0:
                 self.logger.info("[Controller] Vehicle armed successfully")
@@ -474,6 +476,8 @@ class Controller:
         if message == self.TIMEOUT_ERROR:
             self.logger.error("[Controller] Disarm command timed out")
             return self.TIMEOUT_ERROR
+        
+        # TODO: verify command being acknowledged is MAV_CMD_COMPONENT_ARM_DISARM
         elif message.get('result') is not None and message['result'] in enums.MAV_RESULTS.keys():
             if message['result'] == 0:
                 self.logger.info("[Controller] Disarmed successfully")
@@ -513,6 +517,8 @@ class Controller:
         if message == self.TIMEOUT_ERROR:
             self.logger.error("[Controller] Geofence enable command timed out")
             return self.TIMEOUT_ERROR
+        
+        # TODO: verify command being acknowledged is MAV_CMD_DO_FENCE_ENABLE
         elif message.get('result') is not None and message['result'] in enums.MAV_RESULTS.keys():
             if message['result'] == 0:
                 self.logger.info("[Controller] Geofence enabled successfully")
@@ -555,6 +561,8 @@ class Controller:
         if message == self.TIMEOUT_ERROR:
             self.logger.error("[Controller] Geofence disable command timed out")
             return self.TIMEOUT_ERROR
+        
+        # TODO: verify command being acknowledged is MAV_CMD_DO_FENCE_ENABLE
         elif message.get('result') is not None and message['result'] in enums.MAV_RESULTS.keys():
             if message['result'] == 0:
                 self.logger.info("[Controller] Geofence disabled successfully")
@@ -610,6 +618,8 @@ class Controller:
         if message == self.TIMEOUT_ERROR:
             self.logger.error("[Controller] Set home location command timed out")
             return self.TIMEOUT_ERROR
+        
+        # TODO: verify command being acknowledged is MAV_CMD_DO_SET_HOME
         elif message.get('result') is not None and message['result'] in enums.MAV_RESULTS.keys():
             if message['result'] == 0:
                 self.logger.info(f"[Controller] Home location set to {home_coordinate}")
@@ -703,32 +713,43 @@ class Controller:
         self.logger.debug("[Controller] Received wind data")
         return message
 
-    async def receive_gps(self) -> int | Coordinate:
+    async def receive_gps(self, timeout=TIMEOUT_DURATION, normalize_time=False) -> int | Coordinate:
         """
         Wait for a GLOBAL_POSITION_INT message from ardupilot.
 
         Args:
             timeout (int): The timeout duration in seconds. Default is 5 seconds.
+            normalize_time (bool): If True, the timestamp will be normalized to the controller's clock. Default is False.
 
         Returns:
             Coordinate: A Coordinate object containing the GPS data if received, TIMEOUT_ERROR (101) if the response timed out.
         """
 
-        message = await self.receive_message("GLOBAL_POSITION_INT")
+        message = await self.receive_message("GLOBAL_POSITION_INT", timeout=timeout)
         if message == self.TIMEOUT_ERROR:
             self.logger.error("[Controller] Receive GPS data timed out")
             return self.TIMEOUT_ERROR
         elif message.get('lat') is not None and message.get('lon') is not None and message.get('alt') is not None and message.get('hdg') is not None:
             self.logger.debug(f"[Controller] Received GPS data from {message['lat']}, {message['lon']}, {message['alt']}, {message['hdg']}")
             if message is not None:
+
+                if normalize_time and 'time_boot_ms' in message and self.offset is not None:
+                    # normalize the timestamp using the offset
+                    normalized_timestamp = message['time_boot_ms'] * 1e6 - self.offset
+
+                else:
+                    normalized_timestamp = message['time_boot_ms'] * 1e6  # convert to nanoseconds
+            
+
                 return Coordinate(
                     message['lat'],
                     message['lon'],
                     message['alt'] / 1000,
                     use_int=False,
                     heading=message['hdg'],
-                    timestamp=message['time_boot_ms']
-                )  # convert to meters, lat and lon are in degrees e7
+                    timestamp=normalized_timestamp
+                )
+            
             return self.BAD_RESPONSE_ERROR
         else:
             self.logger.error("[Controller] Bad response received for GPS data")
@@ -767,7 +788,6 @@ class Controller:
         Returns:
             int: 0 if the message interval was set successfully, error code if there was an error, 101 if the response timed out.
         """
-
         message = self.master.mav.command_long_encode( # type: ignore
             0,  # target_system
             0,  # target_component
@@ -810,7 +830,6 @@ class Controller:
         Returns:
             int: 0 if the message interval was disabled successfully, error code if there was an error, 101 if the response timed out.
         """
-
         message = self.master.mav.command_long_encode( # type: ignore
             0,  # target_system
             0,  # target_component
@@ -849,7 +868,6 @@ class Controller:
         Returns:
             int: The current mission index if received, TIMEOUT_ERROR (101) if the response timed out.
         """
-
         message = await self.receive_message("MISSION_CURRENT")
         if message == self.TIMEOUT_ERROR:
             self.logger.error("[Controller] Receive current mission index timed out")
@@ -871,7 +889,6 @@ class Controller:
         Returns:
             int: 0 if the current mission index was set successfully, error code if there was an error, 101 if the response timed out.
         """
-
         message = self.master.mav.command_long_encode( # type: ignore
             0,  # target_system
             0,  # target_component
@@ -913,7 +930,6 @@ class Controller:
         Returns:
             int: 0 if the mission was started successfully, error code if there was an error, 101 if the response timed out.
         """
-
         message = self.master.mav.command_long_encode( # type: ignore
             0,  # target_system
             0,  # target_component
@@ -955,7 +971,6 @@ class Controller:
         Returns:
             response if an attitude message was received, TIMEOUT_ERROR (101) if the response timed out.
         """
-
         message = await self.receive_message("ATTITUDE", timeout=timeout)
         if message == self.TIMEOUT_ERROR:
             self.logger.error("[Controller] Receive attitude data timed out")
@@ -977,7 +992,6 @@ class Controller:
         Returns:
             int: 0 if the timesync request was sent successfully.
         """
-        
         self.master.mav.timesync_send( # type: ignore
             0,  # tc1 - set to 0 for request
             int(current_time),  # ts1 - current time in nanoseconds,

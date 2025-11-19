@@ -53,7 +53,7 @@ class FlightController(Controller):
                  message_topic: str="",
                  timesync: bool=False) -> None:
         # Initialize the controller
-        super().__init__(connection_string, logger=logger, baud=baud, message_host=message_host, message_port=message_port, message_topic=message_topic)
+        super().__init__(connection_string, logger=logger, baud=baud, message_host=message_host, message_port=message_port, message_topic=message_topic, timesync=timesync)
 
         self.geofence = Mission(self, type=1)  # type 1 is geofence
 

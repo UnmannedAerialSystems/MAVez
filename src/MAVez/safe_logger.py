@@ -50,7 +50,7 @@ class SafeLogger:
             self.logger.critical(msg)
 
 
-def configure_logging():
+def configure_logging(level: int = logging.INFO) -> logging.Logger:
     """
     Configure logging to log messages to both a file and the console with colors.
     """
@@ -83,7 +83,7 @@ def configure_logging():
         ))
 
         # Add handlers to the logger
-        logger.setLevel(logging.INFO)
+        logger.setLevel(level)
         logger.addHandler(file_handler)
         logger.addHandler(console_handler)
 
