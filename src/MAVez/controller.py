@@ -98,6 +98,7 @@ class Controller:
         # clock sync variables
         self.timesync = timesync
         self.rtt = None
+        self.start_time = time.monotonic_ns()
         self.offset = None
         self.last_sync_time = 0
         self.ROLLING_WINDOW = 50
@@ -740,7 +741,6 @@ class Controller:
                 else:
                     normalized_timestamp = message['time_boot_ms'] * 1e6  # convert to nanoseconds
             
-
                 return Coordinate(
                     message['lat'],
                     message['lon'],
@@ -1030,11 +1030,11 @@ class Controller:
         NUM_SAMPLES = 10
         i = 0
         while i < NUM_SAMPLES:
-            ts1 = time.monotonic_ns()
+            ts1 = time.monotonic_ns() - self.start_time
             self.request_timesync(ts1)
 
             response = await self.receive_timesync()
-            ts4 = time.monotonic_ns()
+            ts4 = time.monotonic_ns() - self.start_time
 
             if isinstance(response, int):
                 self.logger.error("[Controller] Failed to sync clocks.")
@@ -1087,3 +1087,12 @@ class Controller:
         while self.__running:
             await self.sync_clocks()
             await asyncio.sleep(self.CLOCK_SYNC_INTERVAL)
+
+    def monotonic_time_ns(self) -> int:
+        """
+        Get the current monotonic time in nanoseconds since the controller started.
+
+        Returns:
+            int: The current monotonic time in nanoseconds since the controller started.
+        """
+        return time.monotonic_ns() - self.start_time
