@@ -1062,6 +1062,8 @@ class Controller:
             # rolling average for offset
             if self.offset is None:
                 self.offset = offset
+            elif abs(self.offset - offset) > self.offset * 0.1: # if offset differs by more than 10%, ignore it
+                self.logger.debug("[Controller] Offset differs significantly, ignoring sample.")
             else:
                 self.offset = (self.offset * len(self.local_samples) + offset) // (len(self.local_samples) + 1)
 
