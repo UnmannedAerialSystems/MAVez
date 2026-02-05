@@ -11,7 +11,7 @@ import sys
 project = "MAVez"
 copyright = "2025, The Pennsylvania State University Unmanned Aerial Systems Club"
 author = "The Pennsylvania State University Unmanned Aerial Systems Club"
-version = "3.5.1"
+version = "3.5.2"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

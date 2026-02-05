@@ -1026,15 +1026,19 @@ class Controller:
             int: 0 if the clocks were synced successfully, otherwise an error code.
         """
         self.logger.debug("[Flight] Syncing clocks...")
-
+        ALPHA = 0.5
         NUM_SAMPLES = 10
         i = 0
+
+        rtt_samples = []
+        offset_samples = []
+
         while i < NUM_SAMPLES:
-            ts1 = time.monotonic_ns() - self.start_time
+            ts1 = time.monotonic_ns()
             self.request_timesync(ts1)
 
             response = await self.receive_timesync()
-            ts4 = time.monotonic_ns() - self.start_time
+            ts4 = time.monotonic_ns()
 
             if isinstance(response, int):
                 self.logger.error("[Controller] Failed to sync clocks.")
@@ -1053,21 +1057,19 @@ class Controller:
             if len(self.local_samples) > self.ROLLING_WINDOW:
                 self.local_samples.pop(0)
                 self.peer_samples.pop(0)
-            # rolling average for RTT
-            if self.rtt is None:
-                self.rtt = rtt
-            else:
-                self.rtt = (self.rtt * len(self.local_samples) + rtt) // (len(self.local_samples) + 1)
-
-            # rolling average for offset
-            if self.offset is None:
-                self.offset = offset
-            elif abs(self.offset - offset) > self.offset * 0.1: # if offset differs by more than 10%, ignore it
-                self.logger.debug("[Controller] Offset differs significantly, ignoring sample.")
-            else:
-                self.offset = (self.offset * len(self.local_samples) + offset) // (len(self.local_samples) + 1)
+            
+            rtt_samples.append(rtt)
+            offset_samples.append(offset)
 
             i += 1
+
+        rtt = sum(rtt_samples) / len(rtt_samples)
+        offset = sum(offset_samples) / len(offset_samples)
+        self.rtt = rtt
+        if self.offset:
+            self.offset = (1 - ALPHA) * self.offset + ALPHA * offset
+        else: 
+            self.offset = offset
 
         timesync_update = Message(
             topic=f"{self.message_topic}_timesync_update" if self.message_topic else "timesync_update", 
