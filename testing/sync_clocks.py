@@ -7,7 +7,7 @@ import asyncio
 class ClockSync:
 
     def __init__(self):
-        self.controller = flight_controller.FlightController(connection_string='tcp:127.0.0.1:5762', 
+        self.controller = flight_controller.FlightController(connection_string='/dev/tty.usbmodem11303', 
                                                     baud=57600, 
                                                     logger=logger, 
                                                     message_host='127.0.0.1', 
