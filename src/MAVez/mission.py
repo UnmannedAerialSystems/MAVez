@@ -1,5 +1,5 @@
 # mission.py
-# version: 3.0.0
+# version: 3.0.1
 # Author: Theodore Tasman
 # Creation Date: 2025-01-30
 # Last Modified: 2025-09-24
@@ -9,9 +9,13 @@
 An ardupilot mission.
 """
 
+from uas_messenger.message import Message
+
 from MAVez.mission_item import MissionItem
 from MAVez.coordinate import Coordinate
 from MAVez.controller import Controller
+
+import logging
 import time
 
 
@@ -302,3 +306,45 @@ class Mission:
 
     def __len__(self):
         return len(self.mission_items)
+
+
+
+def get_mission_length(filepath: str, logger: logging.Logger | None = None) -> int:
+    """Utility function to get the number of mission items in a mission file.
+
+    Args:
+        filepath (str): Path to mission file
+        logger (logging.Logger | None, optional): logging. Defaults to None
+        
+    Returns:
+        int: Number of items in the mission, or -1 if file was not found
+    """
+    try:
+        with open(filepath, 'r') as f:
+            return len(f.readlines()) - 1  # Subtract 1 for the header line
+    except Exception as e:
+        print(f"Error reading mission file {filepath}: {e}")
+        return -1
+    
+
+async def is_mission_completed(msg: Message, mission_length: int, logger: logging.Logger | None = None) -> bool:
+    """
+    Wait for the mission to complete by monitoring the current mission index.
+
+    Args:
+        msg (Message): The UAS Messenger message containing the mission item reached
+        mission_length (int): Total number of mission items.
+        logger (logging.Logger | None, optional): logging. Defaults to None
+
+    Returns:
+        bool: True if mission is completed, false otherwise
+    """
+    data = msg.header
+    seq = data.get("seq", -1)
+    if seq == -1:
+        logger.warning("[Handler] Invalid seq number received") if logger else None
+    elif seq == mission_length - 1:
+        logger.info("[Handler] Mission completed") if logger else None
+        return True
+    logger.info(f"[Handler] Current mission seq: {seq}") if logger else None
+    return False

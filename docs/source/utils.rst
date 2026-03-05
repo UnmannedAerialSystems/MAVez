@@ -1,14 +1,6 @@
 Utils
 =============
 
-Enums
------
-
-.. automodule:: MAVez.enums
-   :members:
-   :show-inheritance:
-   :undoc-members:
-
 Safe Logger
 -----------
 
