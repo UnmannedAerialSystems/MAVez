@@ -375,6 +375,47 @@
 
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="MAVez.mission.get_mission_length">
+<span class="sig-prename descclassname"><span class="pre">MAVez.mission.</span></span><span class="sig-name descname"><span class="pre">get_mission_length</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filepath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MAVez.mission.get_mission_length" title="Link to this definition">¶</a></dt>
+<dd><p>Utility function to get the number of mission items in a mission file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filepath</strong> (<em>str</em>) – Path to mission file</p></li>
+<li><p><strong>logger</strong> (<em>logging.Logger</em><em> | </em><em>None</em><em>, </em><em>optional</em>) – logging. Defaults to None</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Number of items in the mission, or -1 if file was not found</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="MAVez.mission.is_mission_completed">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">MAVez.mission.</span></span><span class="sig-name descname"><span class="pre">is_mission_completed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mission_length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MAVez.mission.is_mission_completed" title="Link to this definition">¶</a></dt>
+<dd><p>Wait for the mission to complete by monitoring the current mission index.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>msg</strong> (<em>Message</em>) – The UAS Messenger message containing the mission item reached</p></li>
+<li><p><strong>mission_length</strong> (<em>int</em>) – Total number of mission items.</p></li>
+<li><p><strong>logger</strong> (<em>logging.Logger</em><em> | </em><em>None</em><em>, </em><em>optional</em>) – logging. Defaults to None</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if mission is completed, false otherwise</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 <section id="module-MAVez.mission_item">
 <span id="mission-item"></span><h2>Mission Item<a class="headerlink" href="#module-MAVez.mission_item" title="Link to this heading">¶</a></h2>
@@ -494,6 +535,8 @@
 <li><a class="reference internal" href="#MAVez.mission.Mission.send_mission"><code class="docutils literal notranslate"><span class="pre">Mission.send_mission()</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#MAVez.mission.get_mission_length"><code class="docutils literal notranslate"><span class="pre">get_mission_length()</span></code></a></li>
+<li><a class="reference internal" href="#MAVez.mission.is_mission_completed"><code class="docutils literal notranslate"><span class="pre">is_mission_completed()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-MAVez.mission_item">Mission Item</a><ul>
