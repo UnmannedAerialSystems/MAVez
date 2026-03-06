@@ -9,6 +9,7 @@
 An ardupilot mission.
 """
 
+from pathlib import Path
 from typing import Optional
 from uas_messenger.message import Message
 
@@ -76,7 +77,12 @@ class Mission:
         return error_codes.get(error_code, f"\nUNKNOWN ERROR ({error_code})\n")
 
     @classmethod
-    def from_file(cls, controller: Controller, filepath: str, type: int=0) -> Optional['Mission']:
+    def from_file(cls, controller: Controller, filepath: Path, type: int=0) -> Optional['Mission']:
+        """Create a Mission object directly from a QGC WPL 110 file.    
+
+        Returns:
+            Mission | None: The created mission object or None if file loading failed
+        """
         mission = cls(controller, type)
         res = mission.load_mission_from_file(filepath)
         if res != 0:
@@ -86,13 +92,13 @@ class Mission:
         return mission
 
     def load_mission_from_file(
-        self, filename: str, start: int=0, end: int=-1, first_seq: int=-1, overwrite: bool=True
+        self, filename: Path, start: int=0, end: int=-1, first_seq: int=-1, overwrite: bool=True
     ):
         """
         Load a QGC WPL 110 mission from a file. For details on the file format, see: https://mavlink.io/en/file_formats/
 
         Args:
-            filename (str): The path to the file containing the mission.
+            filename (Path): The path to the file containing the mission.
             start (int): The line number to start loading from, default is 0.
             end (int): The line number to stop loading at, default is -1 (load to the end).
             first_seq (int): The sequence number to start from, default is -1 (use the sequence number from the file).

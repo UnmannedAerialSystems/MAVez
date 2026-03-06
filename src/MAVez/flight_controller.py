@@ -13,6 +13,7 @@ This module is responsible for managing the flight of ardupilot.
 # python3 ./MAVLink/ardupilot/Tools/autotest/sim_vehicle.py -v ArduPlane --console --map --custom-location 38.31527628,-76.54908330,40,282.5
 
 from logging import Logger
+from pathlib import Path
 from MAVez.mission import Mission
 from MAVez.controller import Controller
 from MAVez.enums.mav_message import MAVMessage
@@ -81,7 +82,7 @@ class FlightController(Controller):
 
         return errors_dict.get(error_code, f"UNKNOWN ERROR ({error_code})")
 
-    async def takeoff(self, takeoff_mission_filename: str) -> int:
+    async def takeoff(self, takeoff_mission_filename: Path) -> int:
         """
         Takeoff ardupilot.
 
@@ -138,7 +139,7 @@ class FlightController(Controller):
 
         return 0
 
-    def append_mission(self, filename: str) -> int:
+    def append_mission(self, filename: Path) -> int:
         """
         Append a mission to the mission list.
 
@@ -359,7 +360,7 @@ class FlightController(Controller):
         )
         return self.TIMEOUT_ERROR
     
-    async def set_geofence(self, geofence_filename: str) -> int:
+    async def set_geofence(self, geofence_filename: Path) -> int:
         """
         Send and enable the geofence from a file.
 
