@@ -320,9 +320,13 @@
 <dl class="py method">
 <dt class="sig sig-object py" id="MAVez.mission.Mission.from_file">
 <span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">controller</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filepath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MAVez.mission.Mission.from_file" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<a class="reference internal" href="#MAVez.mission.Mission" title="MAVez.mission.Mission"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mission</span></code></a>]</span></p>
+<dd><p>Create a Mission object directly from a QGC WPL 110 file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The created mission object or None if file loading failed</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#MAVez.mission.Mission" title="MAVez.mission.Mission">Mission</a> | None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -334,7 +338,7 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>filename</strong> (<em>str</em>) – The path to the file containing the mission.</p></li>
+<li><p><strong>filename</strong> (<em>Path</em>) – The path to the file containing the mission.</p></li>
 <li><p><strong>start</strong> (<em>int</em>) – The line number to start loading from, default is 0.</p></li>
 <li><p><strong>end</strong> (<em>int</em>) – The line number to stop loading at, default is -1 (load to the end).</p></li>
 <li><p><strong>first_seq</strong> (<em>int</em>) – The sequence number to start from, default is -1 (use the sequence number from the file).</p></li>
