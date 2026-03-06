@@ -318,6 +318,16 @@
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="MAVez.mission.Mission.from_file">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">controller</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filepath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MAVez.mission.Mission.from_file" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<a class="reference internal" href="#MAVez.mission.Mission" title="MAVez.mission.Mission"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mission</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="MAVez.mission.Mission.load_mission_from_file">
 <span class="sig-name descname"><span class="pre">load_mission_from_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">first_seq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MAVez.mission.Mission.load_mission_from_file" title="Link to this definition">¶</a></dt>
 <dd><p>Load a QGC WPL 110 mission from a file. For details on the file format, see: <a class="reference external" href="https://mavlink.io/en/file_formats/">https://mavlink.io/en/file_formats/</a></p>
@@ -531,6 +541,7 @@
 <li><a class="reference internal" href="#MAVez.mission.Mission.add_mission_item"><code class="docutils literal notranslate"><span class="pre">Mission.add_mission_item()</span></code></a></li>
 <li><a class="reference internal" href="#MAVez.mission.Mission.clear_mission"><code class="docutils literal notranslate"><span class="pre">Mission.clear_mission()</span></code></a></li>
 <li><a class="reference internal" href="#MAVez.mission.Mission.decode_error"><code class="docutils literal notranslate"><span class="pre">Mission.decode_error()</span></code></a></li>
+<li><a class="reference internal" href="#MAVez.mission.Mission.from_file"><code class="docutils literal notranslate"><span class="pre">Mission.from_file()</span></code></a></li>
 <li><a class="reference internal" href="#MAVez.mission.Mission.load_mission_from_file"><code class="docutils literal notranslate"><span class="pre">Mission.load_mission_from_file()</span></code></a></li>
 <li><a class="reference internal" href="#MAVez.mission.Mission.save_mission_to_file"><code class="docutils literal notranslate"><span class="pre">Mission.save_mission_to_file()</span></code></a></li>
 <li><a class="reference internal" href="#MAVez.mission.Mission.send_mission"><code class="docutils literal notranslate"><span class="pre">Mission.send_mission()</span></code></a></li>
