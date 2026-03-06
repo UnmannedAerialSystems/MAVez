@@ -15,6 +15,7 @@ This module is responsible for managing the flight of ardupilot.
 from logging import Logger
 from MAVez.mission import Mission
 from MAVez.controller import Controller
+from MAVez.enums.mav_message import MAVMessage
 import time
 
 class FlightController(Controller):
@@ -137,7 +138,7 @@ class FlightController(Controller):
 
         return 0
 
-    def append_mission(self, filename) -> int:
+    def append_mission(self, filename: str) -> int:
         """
         Append a mission to the mission list.
 
@@ -159,7 +160,7 @@ class FlightController(Controller):
         self.mission_queue.append(mission)
         return 0
 
-    async def wait_for_waypoint(self, target) -> int:
+    async def wait_for_waypoint(self, target: int) -> int:
         """
         Wait for ardupilot to reach the current waypoint.
 
@@ -252,8 +253,8 @@ class FlightController(Controller):
 
         # start receiving landing status
         response = await self.set_message_interval(
-            message_type=245, interval=100000
-        )  # 245 is landing status (EXTENDED_SYS_STATE), 1e6 is 1 second
+            message_type=MAVMessage.EXTENDED_SYS_STATE, interval=100000 # 1 second
+        )
         if response:
             self.logger.critical("[Flight] Failed waiting for landing.")
             return response
@@ -281,8 +282,8 @@ class FlightController(Controller):
 
         # stop receiving landing status
         response = await self.disable_message_interval(
-            message_type=245
-        )  # 245 is landing status (EXTENDED_SYS_STATE)
+            message_type=MAVMessage.EXTENDED_SYS_STATE
+        )
         if response:
             self.logger.error("[Flight] Error waiting for landing.")
             return response

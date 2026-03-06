@@ -9,6 +9,7 @@
 An ardupilot mission.
 """
 
+from typing import Optional
 from uas_messenger.message import Message
 
 from MAVez.mission_item import MissionItem
@@ -73,6 +74,16 @@ class Mission:
         }
 
         return error_codes.get(error_code, f"\nUNKNOWN ERROR ({error_code})\n")
+
+    @classmethod
+    def from_file(cls, controller: Controller, filepath: str, type: int=0) -> Optional['Mission']:
+        mission = cls(controller, type)
+        res = mission.load_mission_from_file(filepath)
+        if res != 0:
+            if controller.logger:
+                controller.logger.error(f"[Mission] Failed to load mission: {mission.decode_error(res)}")
+            return None
+        return mission
 
     def load_mission_from_file(
         self, filename: str, start: int=0, end: int=-1, first_seq: int=-1, overwrite: bool=True
@@ -323,7 +334,7 @@ def get_mission_length(filepath: str, logger: logging.Logger | None = None) -> i
         with open(filepath, 'r') as f:
             return len(f.readlines()) - 1  # Subtract 1 for the header line
     except Exception as e:
-        print(f"Error reading mission file {filepath}: {e}")
+        logger.error(f"[Mission] Error reading mission file {filepath}: {e}") if logger else None
         return -1
     
 

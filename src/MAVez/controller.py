@@ -26,6 +26,7 @@ from MAVez.safe_logger import SafeLogger
 from MAVez.enums.mav_landed_state import MAVLandedState
 from MAVez.enums.mav_mission_result import MAVMissionResult
 from MAVez.enums.mav_result import MAVResult
+from MAVez.enums.mav_message import MAVMessage
 
 
 class Controller:
@@ -362,7 +363,7 @@ class Controller:
         self.logger.info("[Controller] Sent clear mission")
         return 0
 
-    async def set_mode(self, mode) -> int:
+    async def set_mode(self, mode: str) -> int:
         """
         Set the ardupilot mode.
 
@@ -638,7 +639,7 @@ class Controller:
             self.logger.error("[Controller] Bad response received for set home location")
             return self.BAD_RESPONSE_ERROR
 
-    async def set_servo(self, servo_number, pwm) -> int:
+    async def set_servo(self, servo_number: int, pwm: int) -> int:
         """
         Set the a servo to a specified PWM value.
 
@@ -782,7 +783,7 @@ class Controller:
             self.logger.error("[Controller] Bad response received for landing status")
             return self.BAD_RESPONSE_ERROR
 
-    async def set_message_interval(self, message_type: int, interval: int) -> int:
+    async def set_message_interval(self, message_type: MAVMessage, interval: int) -> int:
         """
         Set the message interval for the specified message type.
 
@@ -799,7 +800,7 @@ class Controller:
             0,  # target_component
             mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL,  # command
             0,  # confirmation
-            message_type,  # param1
+            message_type.value,  # param1
             interval,  # param2
             0,  # param3
             0,  # param4
@@ -825,7 +826,7 @@ class Controller:
             self.logger.error("[Controller] Bad response received for set message interval")
             return self.BAD_RESPONSE_ERROR
 
-    async def disable_message_interval(self, message_type) -> int:
+    async def disable_message_interval(self, message_type: MAVMessage) -> int:
         """
         Disable the message interval for the specified message type.
 
@@ -841,7 +842,7 @@ class Controller:
             0,  # target_component
             mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL,  # command
             0,  # confirmation
-            message_type,  # param1
+            message_type.value,  # param1
             -1,  # param2 # -1 disables the message
             0,  # param3
             0,  # param4
