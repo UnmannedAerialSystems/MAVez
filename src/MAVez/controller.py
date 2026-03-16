@@ -1,8 +1,8 @@
 # mav_controller.py
-# version: 3.5.0
+# version: 3.6.0
 # Author: Theodore Tasman
 # Creation Date: 2025-01-30
-# Last Modified: 2025-11-14
+# Last Modified: 2026-03-16
 # Organization: PSU UAS
 
 """
@@ -288,7 +288,7 @@ class Controller:
         if message == self.TIMEOUT_ERROR:
             self.logger.error("[Controller] Receive mission ack timed out")
             return self.TIMEOUT_ERROR
-        elif message.get('type') is not None and message['type']:
+        elif message.get('type'):
             if message['type'] == 0:  # MAV_MISSION_ACCEPTED
                 self.logger.debug("[Controller] Received mission ack: MAV_MISSION_ACCEPTED")
                 return 0
@@ -399,7 +399,7 @@ class Controller:
             self.logger.error("[Controller] Set mode command timed out")
             return self.TIMEOUT_ERROR
         # TODO: verify command being acknowledged is MAV_CMD_DO_SET_MODE
-        elif message.get('result') is not None and message['result']:
+        elif message.get('result'):
             if message['result'] == 0:
                 self.logger.info(f"[Controller] Set mode to {mode}")
                 return 0
@@ -442,7 +442,7 @@ class Controller:
             return self.TIMEOUT_ERROR
         
         # TODO: verify command being acknowledged is MAV_CMD_COMPONENT_ARM_DISARM
-        elif message.get('result') is not None and message['result']:
+        elif message.get('result'):
             if message['result'] == 0:
                 self.logger.info("[Controller] Vehicle armed successfully")
                 return 0
@@ -486,7 +486,7 @@ class Controller:
             return self.TIMEOUT_ERROR
         
         # TODO: verify command being acknowledged is MAV_CMD_COMPONENT_ARM_DISARM
-        elif message.get('result') is not None and message['result']:
+        elif message.get('result'):
             if message['result'] == 0:
                 self.logger.info("[Controller] Disarmed successfully")
                 return 0
@@ -527,7 +527,7 @@ class Controller:
             return self.TIMEOUT_ERROR
         
         # TODO: verify command being acknowledged is MAV_CMD_DO_FENCE_ENABLE
-        elif message.get('result') is not None and message['result']:
+        elif message.get('result'):
             if message['result'] == 0:
                 self.logger.info("[Controller] Geofence enabled successfully")
                 return 0
@@ -571,7 +571,7 @@ class Controller:
             return self.TIMEOUT_ERROR
         
         # TODO: verify command being acknowledged is MAV_CMD_DO_FENCE_ENABLE
-        elif message.get('result') is not None and message['result']:
+        elif message.get('result'):
             if message['result'] == 0:
                 self.logger.info("[Controller] Geofence disabled successfully")
                 return 0
@@ -628,7 +628,7 @@ class Controller:
             return self.TIMEOUT_ERROR
         
         # TODO: verify command being acknowledged is MAV_CMD_DO_SET_HOME
-        elif message.get('result') is not None and message['result']:
+        elif message.get('result'):
             if message['result'] == 0:
                 self.logger.info(f"[Controller] Home location set to {home_coordinate}")
                 return 0
@@ -670,7 +670,7 @@ class Controller:
         if message == self.TIMEOUT_ERROR:
             self.logger.error("[Controller] Set servo command timed out")
             return self.TIMEOUT_ERROR
-        elif message.get('result') is not None and message['result']:
+        elif message.get('result'):
             if message['result'] == 0:
                 self.logger.info(f"[Controller] Set servo {servo_number} to {pwm} PWM")
                 return 0
@@ -776,7 +776,7 @@ class Controller:
         if message == self.TIMEOUT_ERROR:
             self.logger.error("[Controller] Receive landing status timed out")
             return self.TIMEOUT_ERROR
-        elif message.get('landed_state') is not None and message['landed_state']:
+        elif message.get('landed_state'):
             self.logger.debug(f"[Controller] Received landing status: {MAVLandedState.string(message['landed_state'])}")
             return message['landed_state'] if message['landed_state'] is not None else self.BAD_RESPONSE_ERROR
         else:
@@ -815,7 +815,7 @@ class Controller:
         if message == self.TIMEOUT_ERROR:
             self.logger.error("[Controller] Set message interval command timed out")
             return self.TIMEOUT_ERROR
-        elif message.get('result') is not None and message['result']:
+        elif message.get('result'):
             if message['result'] == 0:
                 self.logger.info(f"[Controller] Set message interval for {message_type} to {interval} μs")
                 return 0
@@ -857,7 +857,7 @@ class Controller:
         if message == self.TIMEOUT_ERROR:
             self.logger.error("[Controller] Disable message interval command timed out")
             return self.TIMEOUT_ERROR
-        elif message.get('result') is not None and message['result']:
+        elif message.get('result'):
             if message['result'] == 0:
                 self.logger.info(f"[Controller] Disabled message interval for {message_type}")
                 return 0
@@ -915,7 +915,7 @@ class Controller:
         if message == self.TIMEOUT_ERROR:
             self.logger.error("[Controller] Set current mission index command timed out")
             return self.TIMEOUT_ERROR
-        elif message.get('result') is not None and message['result']:
+        elif message.get('result'):
             if message['result'] == 0:
                 self.logger.debug(f"[Controller] Set current mission index to {index}")
                 return 0
@@ -957,7 +957,7 @@ class Controller:
         if message == self.TIMEOUT_ERROR:
             self.logger.error("[Controller] Start mission command timed out")
             return self.TIMEOUT_ERROR
-        elif message.get('result') and message['result']:
+        elif message.get('result'):
             if message['result'] == 0:
                 self.logger.debug(f"[Controller] Started mission from {start_index} to {end_index}")
                 return 0
