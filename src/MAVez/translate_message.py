@@ -1,11 +1,11 @@
 # translate_message.py
-# version: 2.0.0
+# version: 2.1.0
 # Original Author: Theodore Tasman
 # Creation Date: 2025-09-24
-# Last Modified: 2025-09-24
+# Last Modified: 2026-03-21
 # Organization: PSU UAS
 
-from uas_messenger.message import Message
+from lingo import Message
 
 def translate_message(csvm, topic: str = "") -> Message | None:
     """
