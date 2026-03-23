@@ -1,5 +1,5 @@
 # mav_controller.py
-# version: 3.7.0
+# version: 3.7.1
 # Author: Theodore Tasman
 # Creation Date: 2025-01-30
 # Last Modified: 2026-03-21
@@ -236,24 +236,18 @@ class Controller:
         Returns:
             Dict: Dictionary representation of MAVLink message if successful, TIMEOUT_ERROR (101) if the response timed out.
         """
-        received_message_queue = asyncio.Queue()
-        
         sub = Subscriber(
             host=self.message_host, 
             port=self.message_port, 
-            topics=[f"{self.message_topic}_{message_type}" if self.message_topic else message_type],
-            callback=(lambda msg: received_message_queue.put_nowait(msg))
-        )
-
-        try:
-            msg = await asyncio.wait_for(
-                received_message_queue.get(),
-                timeout=timeout
+            topics=[f"{self.message_topic}_{message_type}" if self.message_topic else message_type]
             )
-            sub.close()
-            return msg.header
-        except asyncio.TimeoutError:
-            sub.close()
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            msg = sub.recv()
+            if msg:
+                await sub.close()
+                return msg.header
+            await asyncio.sleep(0.1)
         
         return self.TIMEOUT_ERROR
 
