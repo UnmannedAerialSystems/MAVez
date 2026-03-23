@@ -245,7 +245,7 @@ class Controller:
         while time.time() - start_time < timeout:
             msg = sub.recv()
             if msg:
-                await sub.close()
+                sub.close()
                 return msg.header
             await asyncio.sleep(0.1)
         
