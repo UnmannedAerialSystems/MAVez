@@ -3,6 +3,7 @@ Enums
 
 MAV Result
 -----------
+Note, not all MAV Results are supported by ardupilot. Read the `ardupilot documentation <https://ardupilot.org/copter/docs/ArduCopter_MAVLink_Messages.html>`_
 
 .. automodule:: MAVez.enums.mav_result
    :members:
