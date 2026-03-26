@@ -3,7 +3,6 @@ Enums
 
 MAV Result
 -----------
-Note, not all MAV Results are supported by ardupilot. Read the `ardupilot documentation <https://ardupilot.org/copter/docs/ArduCopter_MAVLink_Messages.html>`_
 
 .. automodule:: MAVez.enums.mav_result
    :members:
@@ -11,7 +10,7 @@ Note, not all MAV Results are supported by ardupilot. Read the `ardupilot docume
    :undoc-members:
 
 MAV Mission Result
------------------
+-------------------
 
 .. automodule:: MAVez.enums.mav_mission_result
    :members:
@@ -28,6 +27,8 @@ MAV Landed State
 
 MAV Message
 -----------------
+
+Note, not all MAV Messages are supported by ardupilot. Read the `ardupilot documentation <https://ardupilot.org/copter/docs/ArduCopter_MAVLink_Messages.html>`_
 
 .. automodule:: MAVez.enums.mav_message
    :members:
