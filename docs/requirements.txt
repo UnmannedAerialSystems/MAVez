@@ -6,4 +6,4 @@ pyparsing
 colorlog
 datetime
 asyncio
-uas-messenger>=1.1.0
+psuuas-lingo>=1.5.0
