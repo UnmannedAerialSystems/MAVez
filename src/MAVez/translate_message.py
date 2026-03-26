@@ -15,7 +15,7 @@ def translate_message(csvm, topic: str = "") -> Message | None:
         csvm (CSVMessage): The CSVMessage object to convert.
         
     Returns:
-        Message: a uas_messenger Message object containing the data from the CSVMessage. If the message type is 'UNKNOWN', returns None.
+        Message: a lingo Message object containing the data from the CSVMessage. If the message type is 'UNKNOWN', returns None.
     """
     if csvm.get_type().startswith('UNKNOWN'):
         return None
