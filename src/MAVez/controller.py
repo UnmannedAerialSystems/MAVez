@@ -1,8 +1,8 @@
 # mav_controller.py
-# version: 3.7.1
+# version: 3.8.0
 # Author: Theodore Tasman
 # Creation Date: 2025-01-30
-# Last Modified: 2026-03-21
+# Last Modified: 2026-03-26
 # Organization: PSU UAS
 
 """
@@ -10,12 +10,14 @@ This module is responsible for controlling ardupilot.
 """
 
 import asyncio
+from collections import defaultdict
 import time
 from logging import Logger
+from typing import Callable
 from pymavlink import mavutil
 from pyparsing import Any # type: ignore[import]
 
-from lingo import Publisher, Subscriber, Message
+from lingo import Publisher, Message
 
 from MAVez.translate_message import translate_message
 from MAVez.coordinate import Coordinate
@@ -99,6 +101,9 @@ class Controller:
         self.__running = False
         self.__message_pump_task = None
         self.__clock_sync_task = None
+        self.__waiters_by_type: defaultdict[str, list[asyncio.Event]] = defaultdict(list)
+        self.__message_seq_by_type: defaultdict[str, int] = defaultdict(int)
+        self.__latest_messages: dict[str, Message] = {}
 
         # clock sync variables
         self.timesync = timesync
@@ -192,20 +197,20 @@ class Controller:
         try:
             while self.__running:
                 try:
-                    # use wait_for to add a timeout to recv_match
-                    try:
-                        mav_msg = await asyncio.wait_for(
-                            loop.run_in_executor(None, lambda: self.master.recv_match(blocking=True)),
-                            timeout=5.0,
-                        )
-                    except asyncio.TimeoutError:
-                        mav_msg = None
+                    # use run_in_executor to make recv_match async
+                    mav_msg = await loop.run_in_executor(None, lambda: self.master.recv_match(blocking=True))
+
                     if mav_msg:
                         msg = translate_message(mav_msg, self.message_topic)
                         if msg:
+                            # update cache and seq with new message
+                            self.__latest_messages[mav_msg.get_type()] = msg
+                            self.__message_seq_by_type[mav_msg.get_type()] += 1
+                            # wake up all waiters
+                            for waiter in self.__waiters_by_type[mav_msg.get_type()]:
+                                waiter.set()
+                            # publish message for listeners
                             await self.msg_queue.put(msg)
-                    else:
-                        await asyncio.sleep(0.01)
 
                 except Exception as e:
                     self.logger.error(f"[Controller] Error in message pump: {e}")
@@ -225,33 +230,82 @@ class Controller:
     async def __aexit__(self, exc_type, exc_value, traceback):
         await self.stop()
     
-    async def receive_message(self, message_type: str, timeout: float = 5.0) -> Any:
+    async def request_message(self, message_type: MAVMessage, qualifier: Callable[[dict], bool] = lambda _: True, timeout: float = 5.0) -> dict | None:
+        request = self.master.mav.command_long_encode( # type: ignore
+            0,  # target_system
+            0,  # target_component
+            mavutil.mavlink.MAV_CMD_REQUEST_MESSAGE,  # command
+            0,  # confirmation
+            1,  # param1
+            message_type.value,  # param2
+            0,  # param3
+            0,  # param4
+            0,  # param5
+            0,  # param6
+            0,  # param7
+        )
+
+        message_seq = self.get_message_seq(message_type.name) + 1
+        self.send_message(request)
+        return await self.receive_message(message_type, message_seq, qualifier, timeout)
+
+    async def receive_message(self, message_type: MAVMessage, seq: int = -1, qualifier: Callable[[dict], bool] = lambda _: True, timeout: float = 5.0) -> dict | None:
         """
         Wait for a specific MAVLink message type from ardupilot.
 
         Args:
             message_type (str): The type of MAVLink message to wait for.
+            seq (int, optional): The minimum sequence of the message type desired. If omitted, waits for the next new message
+            qualifier (Callable[[dict], bool]): Additional requirement for message to be returned. By default the first matching message is returned.
             timeout (float): The timeout duration in seconds. Default is 5 seconds.
 
         Returns:
-            Dict: Dictionary representation of MAVLink message if successful, TIMEOUT_ERROR (101) if the response timed out.
+            dict | None: Dictionary representation of MAVLink message if successful, None if the response timed out.
         """
-        sub = Subscriber(
-            host=self.message_host, 
-            port=self.message_port, 
-            topics=[f"{self.message_topic}_{message_type}" if self.message_topic else message_type]
-            )
-        start_time = time.time()
-        while time.time() - start_time < timeout:
-            msg = sub.recv()
-            if msg:
-                sub.close()
-                return msg.header
-            await asyncio.sleep(0.1)
-        
-        return self.TIMEOUT_ERROR
+        # Set seq to next new message by default
+        if seq == -1:
+            seq = self.__message_seq_by_type[message_type.name] + 1
 
-    async def receive_mission_request(self, timeout: float = 5.0) -> int:
+        # Check latest messages cache if seq already met
+        latest = self.__latest_messages.get(message_type.name)
+        if self.__message_seq_by_type[message_type.name] >= seq and latest is not None and qualifier(latest.header):
+            return latest.header
+
+        # Add signal to wake up when new message received
+        signal = asyncio.Event()
+        self.__waiters_by_type[message_type.name].append(signal)
+
+        try:
+            start_time = time.monotonic()
+            while time.monotonic() - start_time < timeout:
+                # wait up to timeout for new message signal
+                remaining = timeout - (time.monotonic() - start_time)
+                try:
+                    await asyncio.wait_for(signal.wait(), timeout=remaining)
+                except asyncio.TimeoutError:
+                    return
+                # verify that the message is new and valid and meets qualifications
+                msg = self.__latest_messages.get(message_type.name)
+                if msg is not None and qualifier(msg.header) and self.__message_seq_by_type[message_type.name] >= seq:
+                    return msg.header
+                # reset signal on unwanted message
+                signal.clear()
+            
+            return
+        
+        # clean up signal from waiters
+        finally:
+            waiters = self.__waiters_by_type.get(message_type.name)
+            if waiters is not None:
+                try:
+                    waiters.remove(signal)
+                except ValueError:
+                    pass
+                if not waiters:
+                    del self.__waiters_by_type[message_type.name]
+
+
+    async def receive_mission_request(self, seq: int, timeout: float = 5.0) -> int:
         """
         Wait for a mission request from ardupilot.
 
@@ -261,8 +315,8 @@ class Controller:
         Returns:
             int: Mission index if a mission request was received, 101 if the response timed out, 102 if a bad response was received.
         """
-        message = await self.receive_message("MISSION_REQUEST", timeout=timeout)
-        if message == self.TIMEOUT_ERROR:
+        message = await self.receive_message(MAVMessage.MISSION_REQUEST, seq, timeout=timeout)
+        if message is None:
             self.logger.error("[Controller] Receive mission request timed out")
             return self.TIMEOUT_ERROR
         elif message.get('seq') is not None:
@@ -272,7 +326,7 @@ class Controller:
             self.logger.error("[Controller] Bad response received for mission request")
             return self.BAD_RESPONSE_ERROR
         
-    async def receive_mission_ack(self, timeout: float = 5.0) -> int:
+    async def receive_mission_ack(self, seq: int, timeout: float = 5.0) -> int:
         """
         Wait for a mission ack from ardupilot.
 
@@ -282,8 +336,8 @@ class Controller:
         Returns:
             int: 0 if a mission ack was received, error code if there was an error, 101 if the response timed out.
         """
-        message = await self.receive_message("MISSION_ACK", timeout=timeout)
-        if message == self.TIMEOUT_ERROR:
+        message = await self.receive_message(MAVMessage.MISSION_ACK, seq, timeout=timeout)
+        if message is None:
             self.logger.error("[Controller] Receive mission ack timed out")
             return self.TIMEOUT_ERROR
         elif message.get('type') is not None:
@@ -309,6 +363,34 @@ class Controller:
         """
         self.master.mav.send(message) # type: ignore
 
+    async def send_command_with_ack(self, message, command_id: int, timeout: int) -> int:
+        """Send a MAVLink command message and wait for the corresponding COMMAND_ACK
+
+        Args:
+            message (MAVLink message): MAVLink message to be sent
+            command_id (int): Integer ID representation of the MAVLink command 
+            timeout (int): Time to wait for ack
+
+        Returns:
+            int: COMMAND_ACK result if received, TIMEOUT_ERROR if timeout, or BAD_RESPONSE_ERROR if non-COMMAND_ACK received
+        """
+        next_seq = self.__message_seq_by_type["COMMAND_ACK"] + 1
+        self.send_message(message)
+
+        message = await self.receive_message(
+            message_type=MAVMessage.COMMAND_ACK, 
+            seq=next_seq, 
+            qualifier=lambda msg: msg.get("command") == command_id,
+            timeout=timeout
+        )
+
+        if message is None:
+            return self.TIMEOUT_ERROR
+        elif message.get('result') is not None:
+            return message['result']
+        else:
+            return self.BAD_RESPONSE_ERROR
+
     def send_mission_count(self, count, mission_type=0) -> int:
         """
         Send the mission count to ardupilot.
@@ -329,7 +411,7 @@ class Controller:
         self.logger.debug(f"[Controller] Sent mission count: {count}")
         return 0
 
-    async def receive_mission_item_reached(self, timeout: int = 240) -> int:
+    async def receive_mission_item_reached(self, seq: int=-1, timeout: int = 240) -> int:
         """
         Wait for a mission item reached message from ardupilot.
 
@@ -339,8 +421,8 @@ class Controller:
         Returns:
             int: The sequence number of the reached mission item if received, TIMEOUT_ERROR (101) if the response timed out.
         """
-        message = await self.receive_message("MISSION_ITEM_REACHED", timeout=timeout)
-        if message == self.TIMEOUT_ERROR:
+        message = await self.receive_message(MAVMessage.MISSION_ITEM_REACHED, seq=seq, timeout=timeout)
+        if message is None:
             self.logger.error("[Controller] Receive mission item reached timed out")
             return self.TIMEOUT_ERROR
         elif message.get('seq') is not None:
@@ -390,23 +472,21 @@ class Controller:
             0,  # param7
         )
 
-        self.master.mav.send(message) # type: ignore
+        res = await self.send_command_with_ack(message, mavutil.mavlink.MAV_CMD_DO_SET_MODE, self.TIMEOUT_DURATION)
 
-        message = await self.receive_message("COMMAND_ACK", timeout=self.TIMEOUT_DURATION)
-        if message == self.TIMEOUT_ERROR:
+        if res == self.TIMEOUT_ERROR:
             self.logger.error("[Controller] Set mode command timed out")
             return self.TIMEOUT_ERROR
-        # TODO: verify command being acknowledged is MAV_CMD_DO_SET_MODE
-        elif message.get('result') is not None:
-            if message['result'] == 0:
-                self.logger.info(f"[Controller] Set mode to {mode}")
-                return 0
-            else:
-                self.logger.error(f"[Controller] Failed to set mode: {MAVResult.string(message['result'])}")
-                return message['result']
-        else:
+        elif res == self.BAD_RESPONSE_ERROR:
             self.logger.error("[Controller] Bad response received for set mode")
             return self.BAD_RESPONSE_ERROR
+        elif res == 0:
+            self.logger.info(f"[Controller] Set mode to {mode}")
+            return 0
+        else:
+            self.logger.error(f"[Controller] Failed to set mode: {MAVResult.string(res)}")
+            return res
+            
 
     async def arm(self, force=False) -> int:
         """
@@ -432,24 +512,20 @@ class Controller:
             0,  # param7
         )
 
-        self.master.mav.send(message) # type: ignore
+        res = await self.send_command_with_ack(message, mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM, self.TIMEOUT_DURATION)
 
-        message = await self.receive_message("COMMAND_ACK", timeout=self.TIMEOUT_DURATION)
-        if message == self.TIMEOUT_ERROR:
+        if res == self.TIMEOUT_ERROR:
             self.logger.error("[Controller] Arm command timed out")
             return self.TIMEOUT_ERROR
-        
-        # TODO: verify command being acknowledged is MAV_CMD_COMPONENT_ARM_DISARM
-        elif message.get('result') is not None:
-            if message['result'] == 0:
-                self.logger.info("[Controller] Vehicle armed successfully")
-                return 0
-            else:
-                self.logger.error(f"[Controller] Failed to arm vehicle: {MAVResult.string(message['result'])}")
-                return message['result']
-        else:
-            self.logger.error("[Controller] Bad response received for arm vehicle")
+        elif res == self.BAD_RESPONSE_ERROR:
+            self.logger.error("[Controller] Bad response received for arm")
             return self.BAD_RESPONSE_ERROR
+        elif res == 0:
+            self.logger.info("[Controller] Armed")
+            return 0
+        else:
+            self.logger.error(f"[Controller] Failed to arm: {MAVResult.string(res)}")
+            return res
 
     async def disarm(self, force=False) -> int:
         """
@@ -476,24 +552,20 @@ class Controller:
             0,  # param7
         )
 
-        self.master.mav.send(message) # type: ignore
+        res = await self.send_command_with_ack(message, mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM, self.TIMEOUT_DURATION)
 
-        message = await self.receive_message("COMMAND_ACK", timeout=self.TIMEOUT_DURATION)
-        if message == self.TIMEOUT_ERROR:
+        if res == self.TIMEOUT_ERROR:
             self.logger.error("[Controller] Disarm command timed out")
             return self.TIMEOUT_ERROR
-        
-        # TODO: verify command being acknowledged is MAV_CMD_COMPONENT_ARM_DISARM
-        elif message.get('result') is not None:
-            if message['result'] == 0:
-                self.logger.info("[Controller] Disarmed successfully")
-                return 0
-            else:
-                self.logger.error(f"[Controller] Failed to disarm vehicle: {MAVResult.string(message['result'])}")
-                return message['result']
-        else:
-            self.logger.error("[Controller] Bad response received for disarm vehicle")
+        elif res == self.BAD_RESPONSE_ERROR:
+            self.logger.error("[Controller] Bad response received for disarm")
             return self.BAD_RESPONSE_ERROR
+        elif res == 0:
+            self.logger.info("[Controller] Disarmed")
+            return 0
+        else:
+            self.logger.error(f"[Controller] Failed to disarm: {MAVResult.string(res)}")
+            return res
 
     async def enable_geofence(self) -> int:
         """
@@ -517,24 +589,20 @@ class Controller:
             0,  # param7
         )
 
-        self.master.mav.send(message) # type: ignore
+        res = await self.send_command_with_ack(message, mavutil.mavlink.MAV_CMD_DO_FENCE_ENABLE, self.TIMEOUT_DURATION)
 
-        message = await self.receive_message("COMMAND_ACK", timeout=self.TIMEOUT_DURATION)
-        if message == self.TIMEOUT_ERROR:
-            self.logger.error("[Controller] Geofence enable command timed out")
+        if res == self.TIMEOUT_ERROR:
+            self.logger.error("[Controller] Enable geofence command timed out")
             return self.TIMEOUT_ERROR
-        
-        # TODO: verify command being acknowledged is MAV_CMD_DO_FENCE_ENABLE
-        elif message.get('result') is not None:
-            if message['result'] == 0:
-                self.logger.info("[Controller] Geofence enabled successfully")
-                return 0
-            else:
-                self.logger.error(f"[Controller] Failed to enable geofence: {MAVResult.string(message['result'])}")
-                return message['result']
-        else:
-            self.logger.error("[Controller] Bad response received for geofence enable")
+        elif res == self.BAD_RESPONSE_ERROR:
+            self.logger.error("[Controller] Bad response received for enable geofence")
             return self.BAD_RESPONSE_ERROR
+        elif res == 0:
+            self.logger.info("[Controller] Geofence enabled")
+            return 0
+        else:
+            self.logger.error(f"[Controller] Failed to enable geofence: {MAVResult.string(res)}")
+            return res
 
     async def disable_geofence(self, floor_only=False) -> int:
         """
@@ -561,24 +629,20 @@ class Controller:
             0,  # param7
         )
 
-        self.master.mav.send(message) # type: ignore
+        res = await self.send_command_with_ack(message, mavutil.mavlink.MAV_CMD_DO_FENCE_ENABLE, self.TIMEOUT_DURATION)
 
-        message = await self.receive_message("COMMAND_ACK", timeout=self.TIMEOUT_DURATION)
-        if message == self.TIMEOUT_ERROR:
-            self.logger.error("[Controller] Geofence disable command timed out")
+        if res == self.TIMEOUT_ERROR:
+            self.logger.error("[Controller] Disable geofence command timed out")
             return self.TIMEOUT_ERROR
-        
-        # TODO: verify command being acknowledged is MAV_CMD_DO_FENCE_ENABLE
-        elif message.get('result') is not None:
-            if message['result'] == 0:
-                self.logger.info("[Controller] Geofence disabled successfully")
-                return 0
-            else:
-                self.logger.error(f"[Controller] Failed to disable geofence: {MAVResult.string(message['result'])}")
-                return message['result']
-        else:
-            self.logger.error("[Controller] Bad response received for geofence disable")
+        elif res == self.BAD_RESPONSE_ERROR:
+            self.logger.error("[Controller] Bad response received for disable geofence")
             return self.BAD_RESPONSE_ERROR
+        elif res == 0:
+            self.logger.info("[Controller] Geofence disabled")
+            return 0
+        else:
+            self.logger.error(f"[Controller] Failed to disable geofence: {MAVResult.string(res)}")
+            return res
 
     async def set_home(self, home_coordinate=Coordinate(0, 0, 0)) -> int:
         """
@@ -618,24 +682,20 @@ class Controller:
             int(home_coordinate.alt),  # param7
         )
 
-        self.master.mav.send(message) # type: ignore
+        res = await self.send_command_with_ack(message, mavutil.mavlink.MAV_CMD_DO_SET_HOME, self.TIMEOUT_DURATION)
 
-        message = await self.receive_message("COMMAND_ACK", timeout=self.TIMEOUT_DURATION)
-        if message == self.TIMEOUT_ERROR:
-            self.logger.error("[Controller] Set home location command timed out")
+        if res == self.TIMEOUT_ERROR:
+            self.logger.error("[Controller] Set home command timed out")
             return self.TIMEOUT_ERROR
-        
-        # TODO: verify command being acknowledged is MAV_CMD_DO_SET_HOME
-        elif message.get('result') is not None:
-            if message['result'] == 0:
-                self.logger.info(f"[Controller] Home location set to {home_coordinate}")
-                return 0
-            else:
-                self.logger.error(f"[Controller] Failed to set home location: {MAVResult.string(message['result'])}")
-                return message['result']
-        else:
-            self.logger.error("[Controller] Bad response received for set home location")
+        elif res == self.BAD_RESPONSE_ERROR:
+            self.logger.error("[Controller] Bad response received for set home")
             return self.BAD_RESPONSE_ERROR
+        elif res == 0:
+            self.logger.info(f"[Controller] Set home to {home_coordinate}")
+            return 0
+        else:
+            self.logger.error(f"[Controller] Failed to set home: {MAVResult.string(res)}")
+            return res
 
     async def set_servo(self, servo_number: int, pwm: int) -> int:
         """
@@ -662,22 +722,20 @@ class Controller:
             0,  # param7
         )
 
-        self.master.mav.send(message) # type: ignore
+        res = await self.send_command_with_ack(message, mavutil.mavlink.MAV_CMD_DO_SET_SERVO, self.TIMEOUT_DURATION)
 
-        message = await self.receive_message("COMMAND_ACK", timeout=self.TIMEOUT_DURATION)
-        if message == self.TIMEOUT_ERROR:
-            self.logger.error("[Controller] Set servo command timed out")
+        if res == self.TIMEOUT_ERROR:
+            self.logger.error(f"[Controller] Set servo {servo_number} command timed out")
             return self.TIMEOUT_ERROR
-        elif message.get('result') is not None:
-            if message['result'] == 0:
-                self.logger.info(f"[Controller] Set servo {servo_number} to {pwm} PWM")
-                return 0
-            else:
-                self.logger.error(f"[Controller] Failed to set servo {servo_number}: {MAVResult.string(message['result'])}")
-                return message['result']
-        else:
-            self.logger.error("[Controller] Bad response received for set servo")
+        elif res == self.BAD_RESPONSE_ERROR:
+            self.logger.error(f"[Controller] Bad response received for set servo {servo_number}")
             return self.BAD_RESPONSE_ERROR
+        elif res == 0:
+            self.logger.info(f"[Controller] Set servo {servo_number} to pwm {pwm}")
+            return 0
+        else:
+            self.logger.error(f"[Controller] Failed to set servo {servo_number}: {MAVResult.string(res)}")
+            return res
     
     async def receive_channel_input(self) -> int | Any:
         """
@@ -690,53 +748,64 @@ class Controller:
             response if an RC_CHANNELS message was received, 101 if the response timed out
         """
 
-        message = await self.receive_message("RC_CHANNELS")
-        if message == self.TIMEOUT_ERROR:
+        message = await self.receive_message(MAVMessage.RC_CHANNELS)
+        if message is None:
             self.logger.error("[Controller] Receive channel input timed out")
             return self.TIMEOUT_ERROR
         elif message.get('chancount') is not None:
             self.logger.debug(f"[Controller] Received channel input from {message['chancount']} channels")
-            return message if message['chancount'] is not None else self.BAD_RESPONSE_ERROR
+            return message
         else:
             self.logger.error("[Controller] Bad response received for channel input")
             return self.BAD_RESPONSE_ERROR
 
-    async def receive_wind(self) -> int | Any:
+    async def receive_wind(self, normalize_direction:bool=False) -> int | Any:
         """
-        Wait for a wind_cov message from ardupilot.
+        Wait for a WIND message from ardupilot.
 
         Args:
             timeout (int): The timeout duration in seconds. Default is 5 seconds.
+            normalize_direction (bool, optional) Flag to make wind direction relative to ground rather than aircraft. This will be an estimate since it requires two messages. Defaults to false
 
         Returns:
-            response if a wind_cov message was received, 101 if the response timed out
+            response if a WIND message was received, 101 if the response timed out
         """
 
-        message = await self.receive_message("WIND_COV")
-        if message == self.TIMEOUT_ERROR:
+        wind_message = await self.receive_message(MAVMessage.WIND)
+        if wind_message is None:
             self.logger.error("[Controller] Receive wind data timed out")
             return self.TIMEOUT_ERROR
-        self.logger.debug("[Controller] Received wind data")
-        return message
 
-    async def receive_gps(self, timeout=TIMEOUT_DURATION, normalize_time=False) -> int | Coordinate:
+        if normalize_direction:
+            gps_message = await self.request_message(MAVMessage.GLOBAL_POSITION_INT)
+            if gps_message is None:
+                self.logger.error("[Controller] Failed to get GPS data for normalizing wind")
+                return self.BAD_RESPONSE_ERROR
+            wind_message['direction'] = (wind_message['direction'] - (gps_message['hdg'] / 100)) % 360
+
+
+        self.logger.debug("[Controller] Received wind data")
+        return wind_message
+
+    async def receive_gps(self, timeout=TIMEOUT_DURATION, normalize_time=False, use_int=False) -> int | Coordinate:
         """
         Wait for a GLOBAL_POSITION_INT message from ardupilot.
 
         Args:
             timeout (int): The timeout duration in seconds. Default is 5 seconds.
             normalize_time (bool): If True, the timestamp will be normalized to the controller's clock. Default is False.
+            use_int (bool): If True, latitude and longitude will be represented in integer degE7. Default is False
 
         Returns:
             Coordinate: A Coordinate object containing the GPS data if received, TIMEOUT_ERROR (101) if the response timed out.
         """
 
-        message = await self.receive_message("GLOBAL_POSITION_INT", timeout=timeout)
-        if message == self.TIMEOUT_ERROR:
+        message = await self.receive_message(MAVMessage.GLOBAL_POSITION_INT, timeout=timeout)
+        if message is None:
             self.logger.error("[Controller] Receive GPS data timed out")
             return self.TIMEOUT_ERROR
         elif message.get('lat') is not None and message.get('lon') is not None and message.get('alt') is not None and message.get('hdg') is not None:
-            self.logger.debug(f"[Controller] Received GPS data from {message['lat']}, {message['lon']}, {message['alt']}, {message['hdg']}")
+            self.logger.debug(f"[Controller] Received GPS data: {message['lat']}, {message['lon']}, {message['alt']}, {message['hdg']}")
             if message is not None:
 
                 if normalize_time and 'time_boot_ms' in message and self.offset is not None:
@@ -750,7 +819,7 @@ class Controller:
                     message['lat'],
                     message['lon'],
                     message['alt'] / 1000,
-                    use_int=False,
+                    use_int=use_int,
                     heading=message['hdg'],
                     timestamp=normalized_timestamp
                 )
@@ -770,8 +839,8 @@ class Controller:
         Returns:
             int: The landing state if received, TIMEOUT_ERROR (101) if the response timed out, 0 if the state is undefined, 1 if on ground, 2 if in air, 3 if taking off, 4 if landing.
         """
-        message = await self.receive_message("EXTENDED_SYS_STATE", timeout=timeout)
-        if message == self.TIMEOUT_ERROR:
+        message = await self.receive_message(MAVMessage.EXTENDED_SYS_STATE, timeout=timeout)
+        if message is None:
             self.logger.error("[Controller] Receive landing status timed out")
             return self.TIMEOUT_ERROR
         elif message.get('landed_state') is not None:
@@ -781,13 +850,13 @@ class Controller:
             self.logger.error("[Controller] Bad response received for landing status")
             return self.BAD_RESPONSE_ERROR
 
-    async def set_message_interval(self, message_type: MAVMessage, interval: int) -> int:
+    async def set_message_interval(self, message_type: MAVMessage, interval_us: int) -> int:
         """
         Set the message interval for the specified message type.
 
         Args:
             message_type (int): The type of message to set the interval for.
-            interval (int): The interval in microseconds to set for the message type.
+            interval_us (int): The interval in microseconds to set for the message type.
             timeout (int): The timeout duration in seconds. Default is 5 seconds.
 
         Returns:
@@ -799,7 +868,7 @@ class Controller:
             mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL,  # command
             0,  # confirmation
             message_type.value,  # param1
-            interval,  # param2
+            interval_us,  # param2
             0,  # param3
             0,  # param4
             0,  # param5
@@ -807,22 +876,20 @@ class Controller:
             0,  # param7
         )
 
-        self.master.mav.send(message) # type: ignore
+        res = await self.send_command_with_ack(message, mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL, self.TIMEOUT_DURATION)
 
-        message = await self.receive_message("COMMAND_ACK", timeout=self.TIMEOUT_DURATION)
-        if message == self.TIMEOUT_ERROR:
+        if res == self.TIMEOUT_ERROR:
             self.logger.error("[Controller] Set message interval command timed out")
             return self.TIMEOUT_ERROR
-        elif message.get('result') is not None:
-            if message['result'] == 0:
-                self.logger.info(f"[Controller] Set message interval for {message_type} to {interval} μs")
-                return 0
-            else:
-                self.logger.error(f"[Controller] Failed to set message interval: {MAVResult.string(message['result'])}")
-                return message['result']
-        else:
+        elif res == self.BAD_RESPONSE_ERROR:
             self.logger.error("[Controller] Bad response received for set message interval")
             return self.BAD_RESPONSE_ERROR
+        elif res == 0:
+            self.logger.info(f"[Controller] Set interval for {message_type.name} to {interval_us} microseconds")
+            return 0
+        else:
+            self.logger.error(f"[Controller] Failed to set interval for {message_type.name}: {MAVResult.string(res)}")
+            return res
 
     async def disable_message_interval(self, message_type: MAVMessage) -> int:
         """
@@ -849,32 +916,30 @@ class Controller:
             0,  # param7
         )
 
-        self.master.mav.send(message) # type: ignore
+        res = await self.send_command_with_ack(message, mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL, self.TIMEOUT_DURATION)
 
-        message = await self.receive_message("COMMAND_ACK", timeout=self.TIMEOUT_DURATION)
-        if message == self.TIMEOUT_ERROR:
+        if res == self.TIMEOUT_ERROR:
             self.logger.error("[Controller] Disable message interval command timed out")
             return self.TIMEOUT_ERROR
-        elif message.get('result') is not None:
-            if message['result'] == 0:
-                self.logger.info(f"[Controller] Disabled message interval for {message_type}")
-                return 0
-            else:
-                self.logger.error(f"[Controller] Failed to disable message interval: {MAVResult.string(message['result'])}")
-                return message['result']
-        else:
+        elif res == self.BAD_RESPONSE_ERROR:
             self.logger.error("[Controller] Bad response received for disable message interval")
             return self.BAD_RESPONSE_ERROR
+        elif res == 0:
+            self.logger.info(f"[Controller] Disabled interval for {message_type.name}")
+            return 0
+        else:
+            self.logger.error(f"[Controller] Failed to disable interval for {message_type.name}: {MAVResult.string(res)}")
+            return res
 
-    async def receive_current_mission_index(self) -> int:
+    async def receive_current_mission_index(self, seq: int) -> int:
         """
         Get the current mission index.
 
         Returns:
             int: The current mission index if received, TIMEOUT_ERROR (101) if the response timed out.
         """
-        message = await self.receive_message("MISSION_CURRENT")
-        if message == self.TIMEOUT_ERROR:
+        message = await self.receive_message(MAVMessage.MISSION_CURRENT, seq=seq)
+        if message is None:
             self.logger.error("[Controller] Receive current mission index timed out")
             return self.TIMEOUT_ERROR
         elif message.get('seq') is not None:
@@ -890,7 +955,7 @@ class Controller:
 
         Args:
             index (int): The index to set as the current mission index.
-
+            reset (bool): Reset the mission, defaults to false
         Returns:
             int: 0 if the current mission index was set successfully, error code if there was an error, 101 if the response timed out.
         """
@@ -907,22 +972,21 @@ class Controller:
             0,  # param6
             0,  # param7
         )
-        self.master.mav.send(message) # type: ignore
 
-        message = await self.receive_message("COMMAND_ACK", timeout=self.TIMEOUT_DURATION)
-        if message == self.TIMEOUT_ERROR:
-            self.logger.error("[Controller] Set current mission index command timed out")
+        res = await self.send_command_with_ack(message, mavutil.mavlink.MAV_CMD_DO_SET_MISSION_CURRENT, self.TIMEOUT_DURATION)
+
+        if res == self.TIMEOUT_ERROR:
+            self.logger.error("[Controller] Set mission index command timed out")
             return self.TIMEOUT_ERROR
-        elif message.get('result') is not None:
-            if message['result'] == 0:
-                self.logger.debug(f"[Controller] Set current mission index to {index}")
-                return 0
-            else:
-                self.logger.error(f"[Controller] Failed to set current mission index: {MAVResult.string(message['result'])}")
-                return message['result']
-        else:
-            self.logger.error("[Controller] Bad response received for set current mission index")
+        elif res == self.BAD_RESPONSE_ERROR:
+            self.logger.error("[Controller] Bad response received for set mission index")
             return self.BAD_RESPONSE_ERROR
+        elif res == 0:
+            self.logger.info(f"[Controller] Set mission index to {index}{' and reset' if reset else ''}")
+            return 0
+        else:
+            self.logger.error(f"[Controller] Failed to set mission index: {MAVResult.string(res)}")
+            return res
 
     async def start_mission(self, start_index, end_index) -> int:
         """
@@ -949,22 +1013,20 @@ class Controller:
             0,  # param7
         )
 
-        self.master.mav.send(message) # type: ignore
+        res = await self.send_command_with_ack(message, mavutil.mavlink.MAV_CMD_DO_SET_MISSION_CURRENT, self.TIMEOUT_DURATION)
 
-        message = await self.receive_message("COMMAND_ACK", timeout=self.TIMEOUT_DURATION)
-        if message == self.TIMEOUT_ERROR:
+        if res == self.TIMEOUT_ERROR:
             self.logger.error("[Controller] Start mission command timed out")
             return self.TIMEOUT_ERROR
-        elif message.get('result') is not None:
-            if message['result'] == 0:
-                self.logger.debug(f"[Controller] Started mission from {start_index} to {end_index}")
-                return 0
-            else:
-                self.logger.error(f"[Controller] Failed to start mission: {MAVResult.string(message['result'])}")
-                return message['result']
-        else:
-            self.logger.error("[Controller] Bad response received for start mission")
+        elif res == self.BAD_RESPONSE_ERROR:
+            self.logger.error("[Controller] Bad response received for set mission index")
             return self.BAD_RESPONSE_ERROR
+        elif res == 0:
+            self.logger.info(f"[Controller] Started mission from waypoints {start_index} to {end_index}")
+            return 0
+        else:
+            self.logger.error(f"[Controller] Failed to start mission: {MAVResult.string(res)}")
+            return res
 
     async def receive_attitude(self, timeout=TIMEOUT_DURATION) -> int | Any:
         """
@@ -976,8 +1038,8 @@ class Controller:
         Returns:
             response if an attitude message was received, TIMEOUT_ERROR (101) if the response timed out.
         """
-        message = await self.receive_message("ATTITUDE", timeout=timeout)
-        if message == self.TIMEOUT_ERROR:
+        message = await self.receive_message(MAVMessage.ATTITUDE, timeout=timeout)
+        if message is None:
             self.logger.error("[Controller] Receive attitude data timed out")
             return self.TIMEOUT_ERROR
         elif message.get('roll') is not None and message.get('pitch') is not None and message.get('yaw') is not None:
@@ -1003,7 +1065,7 @@ class Controller:
         )
         return 0
 
-    async def receive_timesync(self, timeout=TIMEOUT_DURATION) -> int | Any:
+    async def receive_timesync(self, seq: int, timeout=TIMEOUT_DURATION) -> int | Any:
         """
         Wait for a timesync message from ardupilot.
 
@@ -1013,8 +1075,8 @@ class Controller:
         Returns:
             response if a timesync message was received, TIMEOUT_ERROR (101) if the response timed out.
         """
-        message = await self.receive_message("TIMESYNC", timeout=timeout)
-        if message == self.TIMEOUT_ERROR:
+        message = await self.receive_message(MAVMessage.TIMESYNC, seq=seq, timeout=timeout)
+        if message is None:
             self.logger.error("[Controller] Receive timesync data timed out")
             return self.TIMEOUT_ERROR
         elif message.get('tc1') is not None and message.get('ts1') is not None:
@@ -1034,15 +1096,16 @@ class Controller:
         ALPHA = 0.5
         NUM_SAMPLES = 10
         i = 0
+        error_count = 0
 
         rtt_samples = []
         offset_samples = []
-
         while i < NUM_SAMPLES:
             ts1 = time.monotonic_ns()
+            next_seq = self.__message_seq_by_type["TIMESYNC"] + 1
             self.request_timesync(ts1)
 
-            response = await self.receive_timesync()
+            response = await self.receive_timesync(next_seq)
             ts4 = time.monotonic_ns()
 
             if isinstance(response, int):
@@ -1051,6 +1114,10 @@ class Controller:
 
             if response['ts1'] != ts1:
                 self.logger.debug("[Controller] Received unintended timestamp.")
+                error_count += 1
+                if error_count > 10:
+                    self.logger.error("[Controller] Too many unintended timestamps, canceling timesync.")
+                    return -1
                 continue
 
             rtt = ts4 - ts1
@@ -1105,3 +1172,6 @@ class Controller:
             int: The current monotonic time in nanoseconds since the controller started.
         """
         return time.monotonic_ns() - self.start_time
+    
+    def get_message_seq(self, message_type: str) -> int:
+        return self.__message_seq_by_type[message_type]

@@ -1,5 +1,5 @@
 # mission.py
-# version: 3.1.0
+# version: 3.1.1
 # Author: Theodore Tasman
 # Creation Date: 2025-01-30
 # Last Modified: 2026-03-21
@@ -262,13 +262,16 @@ class Mission:
         """
 
         # send mission count
+        next_mission_request_seq = self.controller.get_message_seq("MISSION_REQUEST") + 1
+        next_mission_ack_seq = self.controller.get_message_seq("MISSION_ACK") + 1
         self.controller.send_mission_count(len(self.mission_items), self.type)
 
         # continuous loop to await mission request, or timeout
-        start_time = time.time()
+        start_time = time.monotonic()
         while True:
             # await mission request
-            seq = await self.controller.receive_mission_request()
+            seq = await self.controller.receive_mission_request(next_mission_request_seq)
+            next_mission_request_seq += 1
 
             # verify seq is not an error
             if seq == self.controller.TIMEOUT_ERROR:
@@ -282,7 +285,7 @@ class Mission:
                 break
 
             # check for timeout
-            if time.time() - start_time > self.MISSION_SEND_TIMEOUT:
+            if time.monotonic() - start_time > self.MISSION_SEND_TIMEOUT:
                 if self.controller.logger:
                     self.controller.logger.error(
                         f"[Mission] Mission send timeout after {self.MISSION_SEND_TIMEOUT} seconds"
@@ -290,7 +293,7 @@ class Mission:
                 return self.TIMEOUT_ERROR
 
         # after sending all mission items, wait for mission acknowledgement
-        response = await self.controller.receive_mission_ack()  # returns 0 if successful
+        response = await self.controller.receive_mission_ack(next_mission_ack_seq)  # returns 0 if successful
         if response:
             return response  # propagate error code
 
@@ -310,10 +313,11 @@ class Mission:
             int: 0 if the mission was cleared successfully, or an error code if there was an error.
         """
         # send mission clear all
+        next_mission_ack_seq = self.controller.get_message_seq("MISSION_ACK") + 1
         self.controller.send_clear_mission()
 
         # await mission ack confirming mission was cleared
-        response = await self.controller.receive_mission_ack()
+        response = await self.controller.receive_mission_ack(next_mission_ack_seq)
         if response:
             if self.controller.logger:
                 self.controller.logger.critical("[Mission] Could not clear mission.")

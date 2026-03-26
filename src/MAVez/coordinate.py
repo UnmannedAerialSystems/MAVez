@@ -1,8 +1,8 @@
 # coordinate.py
-# version: 1.2.1
+# version: 1.3.0
 # Authors: Theodore Tasman
 # Creation Date: 2025-01-30
-# Last Modified: 2025-11-14
+# Last Modified: 2026-03-26
 # Organization: PSU UAS
 
 """
@@ -66,13 +66,13 @@ class Coordinate:
 
     __repr__ = __str__
 
-    def offset_coordinate(self, offset: float | int, heading: float | int) -> "Coordinate":
+    def offset_coordinate(self, offset: float | int, bearing: float | int) -> "Coordinate":
         """
         Offset the coordinate by a given distance and heading.
 
         Args:
             offset (float): The distance to offset in meters.
-            heading (float): The heading in degrees.
+            bearing (float): The bearing in degrees.
 
         Returns:
             Coordinate: A new Coordinate object with the offset applied.
@@ -81,11 +81,11 @@ class Coordinate:
         lat, lon = self.normalize()
 
         # convert heading to radians
-        heading = math.radians(heading)
+        bearing = math.radians(bearing)
 
         # calculate the offset in latitude and longitude
-        lat_offset = offset * math.cos(heading)
-        lon_offset = offset * math.sin(heading)
+        lat_offset = offset * math.cos(bearing)
+        lon_offset = offset * math.sin(bearing)
 
         # convert the offset to degrees
         lat_offset = lat_offset / METERS_PER_DEGREE

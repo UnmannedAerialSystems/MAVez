@@ -1,8 +1,8 @@
 # flight_controller.py
-# version: 3.1.0
+# version: 3.1.1
 # Original Author: Theodore Tasman
 # Creation Date: 2025-01-30
-# Last Modified: 2025-11-14
+# Last Modified: 2026-03-26
 # Organization: PSU UAS
 
 """
@@ -254,7 +254,7 @@ class FlightController(Controller):
 
         # start receiving landing status
         response = await self.set_message_interval(
-            message_type=MAVMessage.EXTENDED_SYS_STATE, interval=100000 # 1 second
+            message_type=MAVMessage.EXTENDED_SYS_STATE, interval_us=100000 # 1 second
         )
         if response:
             self.logger.critical("[Flight] Failed waiting for landing.")
@@ -300,8 +300,8 @@ class FlightController(Controller):
         """
 
         self.logger.debug("[Flight] Waiting for current mission index")
-        # wait for the current mission target to be received (should be broadcast by default)
-        response = await self.receive_current_mission_index()
+        # get the latest mission index
+        response = await self.receive_current_mission_index(seq=self.__message_seq_by_type["MISSION_CURRENT"])
         if response == self.TIMEOUT_ERROR:
             return response
 
