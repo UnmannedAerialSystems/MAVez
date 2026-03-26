@@ -1,5 +1,5 @@
 # flight_controller.py
-# version: 3.1.1
+# version: 3.1.2
 # Original Author: Theodore Tasman
 # Creation Date: 2025-01-30
 # Last Modified: 2026-03-26
@@ -44,8 +44,6 @@ class FlightController(Controller):
     BAD_RESPONSE_ERROR = 102  # Bad response error code
     UNKNOWN_MODE_ERROR = 111  # Unknown mode error code
     INVALID_MISSION_ERROR = 301  # Invalid mission error code
-
-    from typing import Literal
 
     def __init__(self, connection_string: str="tcp:127.0.0.1:5762", 
                  baud: int=57600, 
