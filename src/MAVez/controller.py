@@ -663,7 +663,7 @@ class Controller:
         else:
             home_coordinate.altitude_m = home_coordinate.altitude_m
 
-        message = self.master.mav.command_encode_long( # type: ignore
+        message = self.master.mav.command_long_encode( # type: ignore
             0,  # target_system
             0,  # target_component
             0,  # frame - MAV_FRAME_GLOBAL
