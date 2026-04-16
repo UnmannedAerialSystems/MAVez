@@ -27,6 +27,7 @@ from MAVez.enums.mav_landed_state import MAVLandedState
 from MAVez.enums.mav_mission_result import MAVMissionResult
 from MAVez.enums.mav_result import MAVResult
 from MAVez.enums.mav_message import MAVMessage
+from MAVez.enums.reposition_loiter_mode import RepositionLoiterMode
 
 
 class Controller:
@@ -649,37 +650,33 @@ class Controller:
         Set the home location.
 
         Args:
-            home_coordinate (Coordinate): The home coordinate to set. If the coordinate is (0, 0, 0), the current GPS location will be used.
+            home_coordinate (Coordinate): The home coordinate to set. If omitted or (0, 0, 0), the current GPS location will be used.
 
         Returns:
             int: 0 if the home location was set successfully, error code if there was an error, 101 if the response timed out.
         """
 
-        # use_current is set to True if the home coordinate is (0, 0, 0)
-        use_current = home_coordinate == (0, 0, 0)
         # if alt is 0, use the current altitude
-
-        if home_coordinate.alt == 0:
+        if home_coordinate.altitude_m == 0:
             current_pos = await self.receive_gps()
-            home_coordinate.alt = current_pos.alt if isinstance(current_pos, Coordinate) else 0
+            home_coordinate.altitude_m = current_pos.altitude_m if isinstance(current_pos, Coordinate) else 0
         else:
-            home_coordinate.alt = home_coordinate.alt
+            home_coordinate.altitude_m = home_coordinate.altitude_m
 
-
-        message = self.master.mav.command_int_encode( # type: ignore
+        message = self.master.mav.command_encode_long( # type: ignore
             0,  # target_system
             0,  # target_component
             0,  # frame - MAV_FRAME_GLOBAL
             mavutil.mavlink.MAV_CMD_DO_SET_HOME,  # command
             0,  # current
             0,  # auto continue
-            1 if use_current else 0,  # param1
+            1 if home_coordinate == Coordinate(0,0,0) else 0,  # param1 - 1 for use current if coordinate is 0s
             0,  # param2
             0,  # param3
             0,  # param4
-            home_coordinate.lat,  # param5
-            home_coordinate.lon,  # param6
-            int(home_coordinate.alt),  # param7
+            home_coordinate.latitude_deg,  # param5
+            home_coordinate.longitude_deg,  # param6
+            home_coordinate.altitude_m,  # param7
         )
 
         res = await self.send_command_with_ack(message, mavutil.mavlink.MAV_CMD_DO_SET_HOME, self.TIMEOUT_DURATION)
@@ -815,13 +812,12 @@ class Controller:
                 else:
                     normalized_timestamp = message['time_boot_ms'] * 1e6  # convert to nanoseconds
             
-                return Coordinate(
-                    message['lat'],
-                    message['lon'],
-                    message['alt'] / 1000,
-                    use_int=use_int,
-                    heading=message['hdg'],
-                    timestamp=normalized_timestamp
+                return Coordinate.from_int(
+                    latitude_degE7=message['lat'],
+                    longitude_degE7=message['lon'],
+                    altitude_mm=message['alt'],
+                    heading_cdeg=message['hdg'],
+                    timestamp_ms=normalized_timestamp
                 )
             
             return self.BAD_RESPONSE_ERROR
@@ -1013,7 +1009,7 @@ class Controller:
             0,  # param7
         )
 
-        res = await self.send_command_with_ack(message, mavutil.mavlink.MAV_CMD_DO_SET_MISSION_CURRENT, self.TIMEOUT_DURATION)
+        res = await self.send_command_with_ack(message, mavutil.mavlink.MAV_CMD_MISSION_START, self.TIMEOUT_DURATION)
 
         if res == self.TIMEOUT_ERROR:
             self.logger.error("[Controller] Start mission command timed out")
@@ -1175,3 +1171,58 @@ class Controller:
     
     def get_message_seq(self, message_type: str) -> int:
         return self.__message_seq_by_type[message_type]
+    
+    async def send_reposition(
+            self, 
+            position: Coordinate, 
+            radius_m: float = 0, 
+            speed_mps: float = -1,
+            loiter_mode: RepositionLoiterMode = RepositionLoiterMode.USE_YAW,
+            change_mode: bool = False,
+            relative_yaw: bool = True
+    ) -> int:
+        """Send a guided MAV_DO_REPOSITION message
+
+        Args:
+            position (Coordinate): The destination coordinate.
+            radius_m (float, optional): Loiter radius in meters. If omitted or 0, default is used.
+            speed_mps (float, optional): Speed to travel at in m/s. If omitted or -1, default is used.
+            loiter_mode (RepositionLoiterMode, optional): Mode for reposition loiter direction for planes. Defaults to USE_YAW for VTOL craft.
+            change_mode (bool, optional): Flag to automatically change mode to guided upon message send. Defaults to False.
+            relative_yaw (bool, optional): Flag to set yYaw relative to the vehicle current heading. If false, yaw relative to North. Defaults to True.
+        """
+
+        # bitwise operation for flags bitmask
+        flags = (
+            (mavutil.mavlink.MAV_DO_REPOSITION_FLAGS_CHANGE_MODE if change_mode else 0)
+            | (mavutil.mavlink.MAV_DO_REPOSITION_FLAGS_RELATIVE_YAW if relative_yaw else 0)
+        )
+
+        message = self.master.mav.command_long_encode( # type: ignore
+            0,  # target_system
+            0,  # target_component
+            mavutil.mavlink.MAV_CMD_DO_REPOSITION,  # command
+            0,  # confirmation
+            speed_mps,  # param1
+            flags,  # param2
+            radius_m,  # param3
+            position.heading_rad if loiter_mode == RepositionLoiterMode.USE_YAW else loiter_mode.value,  # param4
+            position.latitude_deg,  # param5
+            position.longitude_deg,  # param6
+            position.altitude_m,  # param7
+        )
+
+        res = await self.send_command_with_ack(message, mavutil.mavlink.MAV_CMD_DO_REPOSITION, self.TIMEOUT_DURATION)
+
+        if res == self.TIMEOUT_ERROR:
+            self.logger.error("[Controller] Reposition command timed out")
+            return self.TIMEOUT_ERROR
+        elif res == self.BAD_RESPONSE_ERROR:
+            self.logger.error("[Controller] Bad response received for send reposition")
+            return self.BAD_RESPONSE_ERROR
+        elif res == 0:
+            self.logger.info(f"[Controller] Sent reposition to {position.latitude_deg}, {position.longitude_deg}, {position.altitude_m}")
+            return 0
+        else:
+            self.logger.error(f"[Controller] Failed to set mission index: {MAVResult.string(res)}")
+            return res
