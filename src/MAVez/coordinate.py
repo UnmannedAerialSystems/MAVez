@@ -96,9 +96,7 @@ class Coordinate:
         )
 
     def __str__(self):
-        out = f"{self.latitude_deg}°, {self.longitude_deg}°; altitude {self.altitude_m}m; heading: {self.heading_deg}°"
-        if self.timestamp_ms is not None:
-            out += f"; timestamp: {self.timestamp_ms}"
+        out = f"{self.latitude_deg}°, {self.longitude_deg}°; {self.altitude_m}m"
 
         return out
 
@@ -169,14 +167,15 @@ class Coordinate:
             and self.heading_deg == other.heading_deg
         )
 
-    def distance_to(self, other: "Coordinate") -> float:
+    def distance_to(self, other: "Coordinate", include_alt: bool = False) -> float:
         """Calculate the distance between two coordinates in meters.
 
         Args:
             other (Coordinate): The other coordinate to calculate the distance to.
+            include_alt (bool, optional): Flag to consider difference in altitude in distance. Defaults to false.
 
         Returns:
-            float: The distance in meters between the two coordinates.
+            float: The distance in meters between the two coordinates. 
         """
 
         geo = Geodesic.WGS84.Inverse(
@@ -186,8 +185,11 @@ class Coordinate:
             lon2=other.longitude_deg,
             outmask=Geodesic.DISTANCE # only compute distance
         )
-
-        return geo["s12"]
+        if include_alt:
+            alt_diff = self.altitude_m - other.altitude_m
+            return math.sqrt(geo["s12"] ** 2 + alt_diff ** 2)
+        else:
+            return geo["s12"]
 
 
     def azimuth_to(self, other: "Coordinate") -> float:

@@ -17,6 +17,7 @@ from pathlib import Path
 from MAVez.mission import Mission
 from MAVez.controller import Controller
 from MAVez.enums.mav_message import MAVMessage
+from MAVez.coordinate import Coordinate
 import time
 
 class FlightController(Controller):
@@ -80,9 +81,9 @@ class FlightController(Controller):
 
         return errors_dict.get(error_code, f"UNKNOWN ERROR ({error_code})")
 
-    async def takeoff(self, takeoff_mission_filename: Path) -> int:
+    async def auto_takeoff(self, takeoff_mission_filename: Path) -> int:
         """
-        Takeoff ardupilot.
+        Takeoff ardupilot using an auto mission.
 
         Args:
             takeoff_mission_filename (str): The file containing the takeoff mission.
@@ -396,5 +397,27 @@ class FlightController(Controller):
         
         self.logger.debug("[Flight] Geofence set and enabled")
         return 0
+    
+    async def wait_for_position_reached(self, position: Coordinate, radius_m: float, timeout_s: float):
+        
+        self.logger.info(f"[Controller] Waiting up to {timeout_s} seconds to reach {position}")
+        # poll global_position_int
+        timeout_time = time.time() + timeout_s
+        while (time.time() < timeout_time):  
+
+            # get position
+            response = await self.receive_gps()
+
+            if not isinstance(response, Coordinate):
+                self.logger.error("[Flight] Failed waiting for position reached.")
+                return response
+            
+            elif position.distance_to(response, include_alt=True) < radius_m:
+                return 0
+
+        response = self.TIMEOUT_ERROR
+        self.logger.error("[Flight] Timed out waiting for landing.")
+        return response
+
     
     
