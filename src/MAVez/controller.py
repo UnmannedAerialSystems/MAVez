@@ -27,6 +27,7 @@ from MAVez.enums.mav_landed_state import MAVLandedState
 from MAVez.enums.mav_mission_result import MAVMissionResult
 from MAVez.enums.mav_result import MAVResult
 from MAVez.enums.mav_message import MAVMessage
+from MAVez.enums.reposition_loiter_mode import RepositionLoiterMode
 
 
 class Controller:
@@ -81,7 +82,7 @@ class Controller:
 
         self.msg_queue = asyncio.Queue()
 
-        self.master = mavutil.mavlink_connection(connection_string, baud=baud)  # type: ignore
+        self.master: mavutil.mavfile = mavutil.mavlink_connection(connection_string, baud=baud)  # type: ignore
 
         response = self.master.wait_heartbeat(  # type: ignore
             blocking=True, timeout=self.TIMEOUT_DURATION
@@ -98,7 +99,7 @@ class Controller:
         self.message_port = message_port
         self.logger.info(f"[Controller] Publisher initialized at {message_host}:{message_port}")
 
-        self.__running = False
+        self.__running = asyncio.Event()
         self.__message_pump_task = None
         self.__clock_sync_task = None
         self.__waiters_by_type: defaultdict[str, list[asyncio.Event]] = defaultdict(list)
@@ -142,7 +143,7 @@ class Controller:
             None
         """
         if self.__message_pump_task is None:
-            self.__running = True
+            self.__running.set()
             self.__message_pump_task = asyncio.create_task(self.message_pump())
             self.logger.debug("[Controller] Message pump started")
         
@@ -161,7 +162,7 @@ class Controller:
         """
         self.logger.info("[Controller] Shutting down...")
 
-        self.__running = False
+        self.__running.clear()
         if self.__message_pump_task:
             self.__message_pump_task.cancel()
             try:
@@ -195,7 +196,7 @@ class Controller:
         if self.pub:
             self.pub.start()
         try:
-            while self.__running:
+            while self.__running.is_set():
                 try:
                     # use run_in_executor to make recv_match async
                     mav_msg = await loop.run_in_executor(None, lambda: self.master.recv_match(blocking=True))
@@ -374,6 +375,10 @@ class Controller:
         Returns:
             int: COMMAND_ACK result if received, TIMEOUT_ERROR if timeout, or BAD_RESPONSE_ERROR if non-COMMAND_ACK received
         """
+
+        if not self.__running.is_set():
+            self.logger.warning("[Controller] Cannot receive command ack if controller is not running. Call `controller.start` first")
+
         next_seq = self.__message_seq_by_type["COMMAND_ACK"] + 1
         self.send_message(message)
 
@@ -649,37 +654,33 @@ class Controller:
         Set the home location.
 
         Args:
-            home_coordinate (Coordinate): The home coordinate to set. If the coordinate is (0, 0, 0), the current GPS location will be used.
+            home_coordinate (Coordinate): The home coordinate to set. If omitted or (0, 0, 0), the current GPS location will be used.
 
         Returns:
             int: 0 if the home location was set successfully, error code if there was an error, 101 if the response timed out.
         """
 
-        # use_current is set to True if the home coordinate is (0, 0, 0)
-        use_current = home_coordinate == (0, 0, 0)
         # if alt is 0, use the current altitude
-
-        if home_coordinate.alt == 0:
+        if home_coordinate.altitude_m == 0:
             current_pos = await self.receive_gps()
-            home_coordinate.alt = current_pos.alt if isinstance(current_pos, Coordinate) else 0
+            home_coordinate.altitude_m = current_pos.altitude_m if isinstance(current_pos, Coordinate) else 0
         else:
-            home_coordinate.alt = home_coordinate.alt
+            home_coordinate.altitude_m = home_coordinate.altitude_m
 
-
-        message = self.master.mav.command_int_encode( # type: ignore
+        message = self.master.mav.command_long_encode( # type: ignore
             0,  # target_system
             0,  # target_component
             0,  # frame - MAV_FRAME_GLOBAL
             mavutil.mavlink.MAV_CMD_DO_SET_HOME,  # command
             0,  # current
             0,  # auto continue
-            1 if use_current else 0,  # param1
+            1 if home_coordinate == Coordinate(0,0,0) else 0,  # param1 - 1 for use current if coordinate is 0s
             0,  # param2
             0,  # param3
             0,  # param4
-            home_coordinate.lat,  # param5
-            home_coordinate.lon,  # param6
-            int(home_coordinate.alt),  # param7
+            home_coordinate.latitude_deg,  # param5
+            home_coordinate.longitude_deg,  # param6
+            home_coordinate.altitude_m,  # param7
         )
 
         res = await self.send_command_with_ack(message, mavutil.mavlink.MAV_CMD_DO_SET_HOME, self.TIMEOUT_DURATION)
@@ -787,14 +788,13 @@ class Controller:
         self.logger.debug("[Controller] Received wind data")
         return wind_message
 
-    async def receive_gps(self, timeout=TIMEOUT_DURATION, normalize_time=False, use_int=False) -> int | Coordinate:
+    async def receive_gps(self, timeout=TIMEOUT_DURATION, normalize_time=False) -> int | Coordinate:
         """
         Wait for a GLOBAL_POSITION_INT message from ardupilot.
 
         Args:
             timeout (int): The timeout duration in seconds. Default is 5 seconds.
             normalize_time (bool): If True, the timestamp will be normalized to the controller's clock. Default is False.
-            use_int (bool): If True, latitude and longitude will be represented in integer degE7. Default is False
 
         Returns:
             Coordinate: A Coordinate object containing the GPS data if received, TIMEOUT_ERROR (101) if the response timed out.
@@ -815,13 +815,12 @@ class Controller:
                 else:
                     normalized_timestamp = message['time_boot_ms'] * 1e6  # convert to nanoseconds
             
-                return Coordinate(
-                    message['lat'],
-                    message['lon'],
-                    message['alt'] / 1000,
-                    use_int=use_int,
-                    heading=message['hdg'],
-                    timestamp=normalized_timestamp
+                return Coordinate.from_int(
+                    latitude_degE7=message['lat'],
+                    longitude_degE7=message['lon'],
+                    altitude_mm=message['relative_alt'],
+                    heading_cdeg=message['hdg'],
+                    timestamp_ms=normalized_timestamp
                 )
             
             return self.BAD_RESPONSE_ERROR
@@ -1013,7 +1012,7 @@ class Controller:
             0,  # param7
         )
 
-        res = await self.send_command_with_ack(message, mavutil.mavlink.MAV_CMD_DO_SET_MISSION_CURRENT, self.TIMEOUT_DURATION)
+        res = await self.send_command_with_ack(message, mavutil.mavlink.MAV_CMD_MISSION_START, self.TIMEOUT_DURATION)
 
         if res == self.TIMEOUT_ERROR:
             self.logger.error("[Controller] Start mission command timed out")
@@ -1160,7 +1159,7 @@ class Controller:
         """
         Periodically sync the flight controller clock with the system clock.
         """
-        while self.__running:
+        while self.__running.is_set():
             await self.sync_clocks()
             await asyncio.sleep(self.CLOCK_SYNC_INTERVAL)
 
@@ -1175,3 +1174,148 @@ class Controller:
     
     def get_message_seq(self, message_type: str) -> int:
         return self.__message_seq_by_type[message_type]
+    
+    async def send_reposition(
+            self, 
+            position: Coordinate, 
+            radius_m: float = 0, 
+            speed_mps: float = -1,
+            loiter_mode: RepositionLoiterMode = RepositionLoiterMode.USE_YAW,
+            change_mode: bool = False,
+            relative_yaw: bool = True
+    ) -> int:
+        """Send a guided MAV_DO_REPOSITION message
+
+        Args:
+            position (Coordinate): The destination coordinate.
+            radius_m (float, optional): Loiter radius in meters. If omitted or 0, default is used.
+            speed_mps (float, optional): Speed to travel at in m/s. If omitted or -1, default is used.
+            loiter_mode (RepositionLoiterMode, optional): Mode for reposition loiter direction for planes. Defaults to USE_YAW for VTOL craft.
+            change_mode (bool, optional): Flag to automatically change mode to guided upon message send. Defaults to False.
+            relative_yaw (bool, optional): Flag to set yYaw relative to the vehicle current heading. If false, yaw relative to North. Defaults to True.
+        """
+
+                # bitwise operation for flags bitmask
+        flags = (
+            (1 if change_mode else 0)
+            | (2 if relative_yaw else 0)
+        )
+
+        message = self.master.mav.command_int_encode(
+            0,  # target_system
+            0,  # target_component
+            mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,  # frame
+            mavutil.mavlink.MAV_CMD_DO_REPOSITION,  # command
+            2,  # current (unused)
+            1,  # auto continue (unused)
+            speed_mps,  # param1
+            flags,  # param2
+            radius_m,  # param3
+            position.heading_rad if loiter_mode == RepositionLoiterMode.USE_YAW else loiter_mode.value,  # param4            
+            position.latitude_degE7,  # x
+            position.longitude_degE7,  # y
+            position.altitude_m,  # z
+        )
+
+        res = await self.send_command_with_ack(message, mavutil.mavlink.MAV_CMD_DO_REPOSITION, self.TIMEOUT_DURATION)
+
+        if res == self.TIMEOUT_ERROR:
+            self.logger.error("[Controller] Reposition command timed out")
+            return self.TIMEOUT_ERROR
+        elif res == self.BAD_RESPONSE_ERROR:
+            self.logger.error("[Controller] Bad response received for send reposition")
+            return self.BAD_RESPONSE_ERROR
+        elif res == 0:
+            self.logger.info(f"[Controller] Sent reposition to {position.latitude_deg}°, {position.longitude_deg}°; {position.altitude_m}m")
+            return 0
+        else:
+            self.logger.error(f"[Controller] Failed to reposition: {MAVResult.string(res)}")
+            return res
+
+    async def send_takeoff(
+        self, 
+        pitch_deg: float, 
+        altitude_m: float,
+        require_horizontal_position: bool = True
+    ):
+        
+        message = self.master.mav.command_long_encode( # type: ignore
+            0,  # target_system
+            0,  # target_component
+            mavutil.mavlink.MAV_CMD_NAV_TAKEOFF,  # command
+            0,  # confirmation
+            pitch_deg,  # param1
+            0,  # param2
+            0 if require_horizontal_position else 1,  # param3
+            0,  # param4
+            0,  # param5
+            0,  # param6
+            altitude_m,  # param7
+        )
+
+        res = await self.send_command_with_ack(message, mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, self.TIMEOUT_DURATION)
+
+        if res == self.TIMEOUT_ERROR:
+            self.logger.error("[Controller] Takeoff command timed out")
+            return self.TIMEOUT_ERROR
+        elif res == self.BAD_RESPONSE_ERROR:
+            self.logger.error("[Controller] Bad response received for takeoff")
+            return self.BAD_RESPONSE_ERROR
+        elif res == 0:
+            self.logger.info(f"[Controller] Sent takeoff to {altitude_m} meters")
+            return 0
+        else:
+            self.logger.error(f"[Controller] Failed to takeoff: {MAVResult.string(res)}")
+            return res
+        
+
+    def release_rc(self, channel: int):
+        """Disable RC override for a channel
+
+        Args:
+            channel (int): Channel number 1-8 to set. Values outside [1,8] will be rejected
+
+        Returns:
+            int: 0 if the message is sent, BAD_RESPONSE_ERROR for invalid input
+        """
+        return self.override_rc(channel, 0)
+
+    def override_rc(self, channel: int, pwm: int):
+        """Manually set RC PWM value for a specific channel, overriding RC receiver input
+
+        Args:
+            channel (int): Channel number 1-8 to set. Values outside [1,8] will be rejected
+            pwm (int): PWM value to set from 1000 (low) to 2000 (high) microseconds. A value of 0 will release control of the RC channel back to the receiver. Nonzero values outside [1000,2000] will be rejected.
+
+        Returns:
+            int: 0 if the message is sent, BAD_RESPONSE_ERROR for invalid input
+        """
+        if (pwm < 1000 or pwm > 2000) and not pwm == 0:
+            self.logger.error("[Controller] Invalid pwm value for set RC")
+            return self.BAD_RESPONSE_ERROR
+        elif channel < 1 or channel > 8:
+            self.logger.error("[Controller] Invalid channel value for set RC")
+            return self.BAD_RESPONSE_ERROR
+
+        channels = [0] * 8
+        channels[channel - 1] = pwm
+
+        message = mavutil.mavlink.MAVLink_rc_channels_override_message(
+            0, # target_system
+            0, # target_component
+            channels[0], # chan1_raw
+            channels[1], # chan2_raw
+            channels[2], # chan3_raw
+            channels[3], # chan4_raw
+            channels[4], # chan5_raw
+            channels[5], # chan6_raw
+            channels[6], # chan7_raw
+            channels[7], # chan8_raw
+        )
+
+        self.send_message(message)
+        if pwm == 0:
+            self.logger.info(f"[Controller] Released RC channel {channel} control back to receiver")
+        else:
+            self.logger.info(f"[Controller] Set RC channel {channel} to PWM {pwm} microseconds") 
+        return 0
