@@ -1179,6 +1179,21 @@ class Controller:
             return -1
         
         return int((self.monotonic_time_ns() + self.offset_ns) / 1e6)
+
+    def get_latest_message(self, message_type: MAVMessage) -> dict | None:
+        """
+        Get the latest cached MAVLink message of the specified message_type
+            
+        Args:
+            message_type (MAVMessage): Message type to receive
+        
+        Returns:
+            dict | None: Latest message contents, or None if nothing received
+        """
+        message = self.__latest_messages.get(message_type.name)
+        if not message:
+            return None
+        return message.header
     
     def get_message_seq(self, message_type: str) -> int:
         """Get the latest sequence number for a given message type
