@@ -3,6 +3,7 @@ from MAVez.flight_controller import FlightController
 from MAVez.mission import Mission
 from MAVez.mission_item import MissionItem
 from MAVez.coordinate import Coordinate
+from MAVez.vehicle_state import VehicleState
 from MAVez import enums
 
 
@@ -12,5 +13,6 @@ __all__ = [
     "FlightController",
     "Mission",
     "MissionItem",
+    "VehicleState",
     "enums"
 ]
