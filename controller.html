@@ -5,10 +5,11 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="Missions" href="missions.html"><link rel="prev" title="PSU UAS MAVez" href="index.html">
 
-    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+    <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
         <title>Controllers - MAVez documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx_autodoc_typehints.css?v=057ac668" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
     
     
@@ -250,7 +251,7 @@
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>connection_string</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – The connection string for ardupilot. Default is “<a class="reference external" href="tcp:127.0.0.1:5762">tcp:127.0.0.1:5762</a>” used for SITL.</p></li>
 <li><p><strong>baud</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The baud rate for the connection. Default is 57600.</p></li>
-<li><p><strong>logger</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Logger</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Logger instance for logging messages (optional).</p></li>
+<li><p><strong>logger</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Logger</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Logger instance for logging messages (optional).</p></li>
 <li><p><strong>message_host</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – The host for the messaging system. Default is “127.0.0.1”.</p></li>
 <li><p><strong>message_port</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The port for the messaging system. Default is 5555.</p></li>
 <li><p><strong>message_topic</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – The topic prefix for the messaging system. Default is “”.</p></li>
@@ -384,6 +385,23 @@
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="MAVez.controller.Controller.get_latest_message">
+<span class="sig-name descname"><span class="pre">get_latest_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message_type</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MAVez.controller.Controller.get_latest_message" title="Link to this definition">¶</a></dt>
+<dd><p>Get the latest cached MAVLink message of the specified message_type</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>message_type</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="enums.html#MAVez.enums.mav_message.MAVMessage" title="MAVez.enums.mav_message.MAVMessage"><code class="xref py py-class docutils literal notranslate"><span class="pre">MAVMessage</span></code></a></span>) – Message type to receive</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Latest message contents, or None if nothing received</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -552,7 +570,7 @@
 <dd class="field-even"><p>Dictionary representation of MAVLink message if successful, None if the response timed out.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -667,7 +685,7 @@
 <span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">request_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qualifier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">Controller.&lt;lambda&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MAVez.controller.Controller.request_message" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -995,7 +1013,7 @@
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>connection_string</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – The connection string to ardupilot.</p></li>
 <li><p><strong>baud</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The baud rate for the connection. Default is 57600.</p></li>
-<li><p><strong>logger</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Logger</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional logger for logging flight events.</p></li>
+<li><p><strong>logger</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Logger</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Optional logger for logging flight events.</p></li>
 <li><p><strong>message_host</strong> (<em>str</em>) – The host for messaging.</p></li>
 <li><p><strong>message_host</strong> – The host for the messaging system. Default is “127.0.0.1”.</p></li>
 <li><p><strong>message_port</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The port for the messaging system. Default is 5555.</p></li>
@@ -1420,6 +1438,7 @@
 <li><a class="reference internal" href="#MAVez.controller.Controller.disable_message_interval"><code class="docutils literal notranslate"><span class="pre">Controller.disable_message_interval()</span></code></a></li>
 <li><a class="reference internal" href="#MAVez.controller.Controller.disarm"><code class="docutils literal notranslate"><span class="pre">Controller.disarm()</span></code></a></li>
 <li><a class="reference internal" href="#MAVez.controller.Controller.enable_geofence"><code class="docutils literal notranslate"><span class="pre">Controller.enable_geofence()</span></code></a></li>
+<li><a class="reference internal" href="#MAVez.controller.Controller.get_latest_message"><code class="docutils literal notranslate"><span class="pre">Controller.get_latest_message()</span></code></a></li>
 <li><a class="reference internal" href="#MAVez.controller.Controller.get_message_seq"><code class="docutils literal notranslate"><span class="pre">Controller.get_message_seq()</span></code></a></li>
 <li><a class="reference internal" href="#MAVez.controller.Controller.message_pump"><code class="docutils literal notranslate"><span class="pre">Controller.message_pump()</span></code></a></li>
 <li><a class="reference internal" href="#MAVez.controller.Controller.monotonic_time_ns"><code class="docutils literal notranslate"><span class="pre">Controller.monotonic_time_ns()</span></code></a></li>
