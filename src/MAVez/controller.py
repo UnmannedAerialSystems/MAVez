@@ -1,8 +1,9 @@
 # mav_controller.py
 # version: 3.8.0
-# Author: Theodore Tasman
+# Original Author: Theodore Tasman
+# Additional Authors: Taiyo Molessa
 # Creation Date: 2025-01-30
-# Last Modified: 2026-03-26
+# Last Modified: 2026-10-20
 # Organization: PSU UAS
 
 """
@@ -11,7 +12,9 @@ This module is responsible for controlling ardupilot.
 
 import asyncio
 from collections import defaultdict
+from dataclasses import replace
 import time
+import math
 from logging import Logger
 from typing import Callable
 from pymavlink import mavutil
@@ -22,6 +25,7 @@ from lingo import Publisher, Message
 from MAVez.translate_message import translate_message
 from MAVez.coordinate import Coordinate
 from MAVez.safe_logger import SafeLogger
+from MAVez.vehicle_state import VehicleState, Position, Velocity, Attitude, AngularVelocity, GlobalPosition
 
 from MAVez.enums.mav_landed_state import MAVLandedState
 from MAVez.enums.mav_mission_result import MAVMissionResult
@@ -104,6 +108,9 @@ class Controller:
         self.__message_seq_by_type: defaultdict[str, int] = defaultdict(int)
         self.__latest_messages: dict[str, Message] = {}
 
+        # vehicle state variable
+        self.__vehicle_state = VehicleState()
+
         # clock sync variables
         self.timesync = timesync
         self.rtt_ns = None
@@ -182,7 +189,48 @@ class Controller:
             self.logger.debug("[Controller] Publisher closed")
 
         self.logger.info("[Controller] Shutdown complete")
-    
+
+    def update_vehicle_state(self, message_type: MAVMessage, message: dict):
+        """
+        Update the vehicle state based on the received MAVLink message.
+
+        Args:
+            message_type (MAVMessage): The type of the MAVLink message.
+            message (dict): The MAVLink message data.
+
+        Returns:
+            None
+        """
+        if message_type == MAVMessage.ATTITUDE:
+            self.__vehicle_state = replace(self.__vehicle_state, attitude=Attitude(
+                roll=message['roll'],
+                pitch=message['pitch'],
+                yaw=message['yaw']
+            ), angular_velocity=AngularVelocity(
+                roll_rate=message['rollspeed'],
+                pitch_rate=message['pitchspeed'],
+                yaw_rate=message['yawspeed']
+            ), timestamp=message["time_boot_ms"] / 1000)
+        elif message_type == MAVMessage.LOCAL_POSITION_NED:
+            self.__vehicle_state = replace(self.__vehicle_state, position=Position(
+                north=message['x'],
+                east=message['y'],
+                down=message['z']
+            ), velocity=Velocity(
+                north=message['vx'],
+                east=message['vy'],
+                down=message['vz']
+            ), timestamp=message["time_boot_ms"] / 1000)
+        elif message_type == MAVMessage.GLOBAL_POSITION_INT:
+            self.__vehicle_state = replace(self.__vehicle_state, global_position=GlobalPosition(
+                latitude=message['lat'] / 1e7,
+                longitude=message['lon'] / 1e7,
+                altitude=message['alt'] / 1000 # altitude above mean sea level
+            ), timestamp=message["time_boot_ms"] / 1000)
+
+    def get_state(self) -> VehicleState:
+        return self.__vehicle_state
+
     async def message_pump(self):
         """
         Continuously read MAVLink messages and push them into a queue.
@@ -202,6 +250,12 @@ class Controller:
                     if mav_msg:
                         msg = translate_message(mav_msg, self.message_topic)
                         if msg:
+                            message_type = MAVMessage.__members__.get(mav_msg.get_type())
+
+                            if message_type in (MAVMessage.ATTITUDE, MAVMessage.LOCAL_POSITION_NED, MAVMessage.GLOBAL_POSITION_INT):
+                                self.update_vehicle_state(message_type, msg.header)
+                                self.logger.debug(f"[Controller] Vehicle state updated: {self.__vehicle_state}")
+
                             # update cache and seq with new message
                             self.__latest_messages[mav_msg.get_type()] = msg
                             self.__message_seq_by_type[mav_msg.get_type()] += 1
