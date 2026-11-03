@@ -254,7 +254,6 @@ class Controller:
 
                             if message_type in (MAVMessage.ATTITUDE, MAVMessage.LOCAL_POSITION_NED, MAVMessage.GLOBAL_POSITION_INT):
                                 self.update_vehicle_state(message_type, msg.header)
-                                self.logger.debug(f"[Controller] Vehicle state updated: {self.__vehicle_state}")
 
                             # update cache and seq with new message
                             self.__latest_messages[mav_msg.get_type()] = msg
