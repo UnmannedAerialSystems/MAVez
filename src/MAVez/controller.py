@@ -3,7 +3,7 @@
 # Original Author: Theodore Tasman
 # Additional Authors: Taiyo Molessa
 # Creation Date: 2025-01-30
-# Last Modified: 2026-10-20
+# Last Modified: 2026-11-10
 # Organization: PSU UAS
 
 """
@@ -210,7 +210,7 @@ class Controller:
                 roll_rate=message['rollspeed'],
                 pitch_rate=message['pitchspeed'],
                 yaw_rate=message['yawspeed']
-            ), timestamp=message["time_boot_ms"] / 1000)
+            ), attitude_timestamp=message["time_boot_ms"] / 1000)
         elif message_type == MAVMessage.LOCAL_POSITION_NED:
             self.__vehicle_state = replace(self.__vehicle_state, position=Position(
                 north=message['x'],
@@ -220,13 +220,13 @@ class Controller:
                 north=message['vx'],
                 east=message['vy'],
                 down=message['vz']
-            ), timestamp=message["time_boot_ms"] / 1000)
+            ), position_timestamp=message["time_boot_ms"] / 1000)
         elif message_type == MAVMessage.GLOBAL_POSITION_INT:
             self.__vehicle_state = replace(self.__vehicle_state, global_position=GlobalPosition(
                 latitude=message['lat'] / 1e7,
                 longitude=message['lon'] / 1e7,
                 altitude=message['alt'] / 1000 # altitude above mean sea level
-            ), timestamp=message["time_boot_ms"] / 1000)
+            ), global_position_timestamp=message["time_boot_ms"] / 1000)
 
     def get_state(self) -> VehicleState:
         return self.__vehicle_state

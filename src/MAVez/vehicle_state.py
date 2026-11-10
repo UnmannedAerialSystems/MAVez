@@ -84,11 +84,15 @@ class VehicleState:
         attitude (Attitude): roll, pitch, yaw in rad
         angular_velocity (AngularVelocity): roll_rate, pitch_rate, yaw_rate in rad/s
         global_position (GlobalPosition): latitude/longitude in degrees and altitude in meters above MSL
-        timestamp (float): timestamp in seconds that this state estimate represents
+        position_timestamp (float): timestamp in seconds for position
+        attitude_timestamp (float): timestamp in seconds for attitude
+        global_position_timestamp (float): timestamp in seconds for global position
     """
     position: Position | None = None
     velocity: Velocity | None = None
     attitude: Attitude | None = None
     angular_velocity: AngularVelocity | None = None
     global_position: GlobalPosition | None = None
-    timestamp: float | None = None
+    position_timestamp: float | None = None
+    attitude_timestamp: float | None = None
+    global_position_timestamp: float | None = None
