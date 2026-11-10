@@ -235,6 +235,12 @@ class Controller:
             self.__last_received[message_type] = time.monotonic()
 
     def get_state(self) -> VehicleState:
+        """
+        Get the current vehicle state. Currently does not implement interpolation, this is a work in progress.
+
+        Returns:
+            VehicleState: The current state of the vehicle.
+        """
         return self.__vehicle_state
 
     def get_message_age(self, message_type: MAVMessage) -> float | None:

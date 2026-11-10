@@ -10,16 +10,15 @@ async def main():
         while True:
             state = controller.get_state()
 
-            print("\n--- Vehicle State Timestamps ---")
-            print("Position:", state.position_timestamp)
-            print("Attitude:", state.attitude_timestamp)
-            print("Global Position:", state.global_position_timestamp)
+            old_state = controller.get_state()
+  
+            await asyncio.sleep(2)
+            
+            new_state = controller.get_state()
+            
+            print("Old:", old_state.attitude_timestamp)
+            print("New:", new_state.attitude_timestamp)
             print()
-            age = controller.get_message_age(MAVMessage.ATTITUDE)
-            stale = controller.is_stale(MAVMessage.ATTITUDE, 0.5)
-
-            print(f"Attitude age: {age:.3f}s")
-            print(f"Is stale (0.5s threshold): {stale}")
 
             await asyncio.sleep(0.05)
 
