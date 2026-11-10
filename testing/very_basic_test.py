@@ -15,6 +15,11 @@ async def main():
             print("Attitude:", state.attitude_timestamp)
             print("Global Position:", state.global_position_timestamp)
             print()
+            age = controller.get_message_age(MAVMessage.ATTITUDE)
+            stale = controller.is_stale(MAVMessage.ATTITUDE, 0.5)
+
+            print(f"Attitude age: {age:.3f}s")
+            print(f"Is stale (0.5s threshold): {stale}")
 
             await asyncio.sleep(0.05)
 

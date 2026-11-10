@@ -111,6 +111,9 @@ class Controller:
         # vehicle state variable
         self.__vehicle_state = VehicleState()
 
+        # new clock sync variables
+        self.__last_received = {}
+
         # clock sync variables
         self.timesync = timesync
         self.rtt_ns = None
@@ -228,8 +231,40 @@ class Controller:
                 altitude=message['alt'] / 1000 # altitude above mean sea level
             ), global_position_timestamp=message["time_boot_ms"] / 1000)
 
+        if message_type in (MAVMessage.ATTITUDE, MAVMessage.LOCAL_POSITION_NED, MAVMessage.GLOBAL_POSITION_INT):
+            self.__last_received[message_type] = time.monotonic()
+
     def get_state(self) -> VehicleState:
         return self.__vehicle_state
+
+    def get_message_age(self, message_type: MAVMessage) -> float | None:
+        """
+        Get the age of the last received message of a specific type.
+
+        Args:
+            message_type (MAVMessage): The type of the MAVLink message.
+
+        Returns:
+            float | None: The age of the last received message in seconds, or None if no message has been received.
+        """
+        last_received = self.__last_received.get(message_type)
+        if last_received is not None:
+            return time.monotonic() - last_received
+        return None
+
+    def is_stale(self, message_type: MAVMessage, max_age: float) -> bool:
+        """
+        Check if the last received message of a specific type is stale.
+
+        Args:
+            message_type (MAVMessage): The type of the MAVLink message.
+            max_age (float): The age threshold in seconds to consider a message stale.
+
+        Returns:
+            bool: True if the message is stale, False otherwise.
+        """
+        age = self.get_message_age(message_type)
+        return age is None or age > max_age
 
     async def message_pump(self):
         """
