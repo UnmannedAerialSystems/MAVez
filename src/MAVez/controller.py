@@ -1,9 +1,9 @@
 # mav_controller.py
-# version: 3.8.0
+# version: 3.8.1
 # Original Author: Theodore Tasman
 # Additional Authors: Taiyo Molessa
 # Creation Date: 2025-01-30
-# Last Modified: 2026-11-10
+# Last Modified: 2026-11-11
 # Organization: PSU UAS
 
 """
@@ -23,6 +23,7 @@ from pyparsing import Any # type: ignore[import]
 from lingo import Publisher, Message
 
 from MAVez.translate_message import translate_message
+from MAVez.clock_synchronizer import ClockSynchronizer
 from MAVez.coordinate import Coordinate
 from MAVez.safe_logger import SafeLogger
 from MAVez.vehicle_state import VehicleState, Position, Velocity, Attitude, AngularVelocity, GlobalPosition
@@ -113,6 +114,7 @@ class Controller:
 
         # new clock sync variables
         self.__last_received = {}
+        self.__clock_synchronizer = ClockSynchronizer()
 
         # clock sync variables
         self.timesync = timesync
@@ -289,12 +291,16 @@ class Controller:
                     mav_msg = await loop.run_in_executor(None, lambda: self.master.recv_match(blocking=True))
 
                     if mav_msg:
+                        received_ns = time.monotonic_ns()
                         msg = translate_message(mav_msg, self.message_topic)
                         if msg:
                             message_type = MAVMessage.__members__.get(mav_msg.get_type())
 
                             if message_type in (MAVMessage.ATTITUDE, MAVMessage.LOCAL_POSITION_NED, MAVMessage.GLOBAL_POSITION_INT):
                                 self.update_vehicle_state(message_type, msg.header)
+
+                            if message_type == MAVMessage.TIMESYNC:
+                                self.__clock_synchronizer.handle_timesync_message(msg.header, received_ns)
 
                             # update cache and seq with new message
                             self.__latest_messages[mav_msg.get_type()] = msg
@@ -316,6 +322,31 @@ class Controller:
             if self.pub:
                 self.pub.close()
 
+    async def test_single_timesync(self) -> bool:
+        """
+        Send one TIMESYNC request and wait for its matching response.
+
+        Returns:
+            bool: True if synchronization was successful, False otherwise.
+        """
+        loop = asyncio.get_running_loop()
+        t1_ns = time.monotonic_ns()
+        future = loop.create_future()
+        self.__clock_synchronizer.pending_ts1 = t1_ns
+        self.__clock_synchronizer.pending_response = future
+        self.request_timesync(t1_ns)
+        
+        try:
+            await asyncio.wait_for(future, timeout=5.0)
+            self.logger.debug("[Controller] TIMESYNC:Offset (ns):", self.__clock_synchronizer.offset_ns)
+            self.logger.debug("[Controller] TIMESYNC:RTT (ms):", self.__clock_synchronizer.rtt_ns / 1e6)
+            return True
+        except asyncio.TimeoutError:
+            return False
+        finally:
+            self.__clock_synchronizer.pending_ts1 = None
+            self.__clock_synchronizer.pending_response = None
+            
     async def __aenter__(self):
         await self.start()
         return self
